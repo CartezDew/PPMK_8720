@@ -9,7 +9,7 @@ import {
   Cell,
   PieChart,
   Pie,
-  Legend,
+  LabelList,
 } from "recharts";
 
 const COLORS = [
@@ -20,17 +20,92 @@ const COLORS = [
 const GENDER_COLORS = { Female: "#db2777", Male: "#2563eb", Unknown: "#94a3b8" };
 const OWNER_COLORS = { Homeowner: "#059669", Renter: "#d97706", Unknown: "#94a3b8" };
 
+function shortCurrency(val) {
+  if (Math.abs(val) >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(val) >= 1_000) return `$${Math.round(val / 1_000)}K`;
+  return `$${Math.round(val)}`;
+}
+
+function pctOfTotal(val, data, key) {
+  const total = data.reduce((s, d) => s + (d[key] || 0), 0);
+  return total > 0 ? Math.round((val / total) * 100) : 0;
+}
+
+function findMaxIndex(data, key) {
+  let maxIdx = 0;
+  let maxVal = -Infinity;
+  data.forEach((d, i) => {
+    if ((d[key] || 0) > maxVal) {
+      maxVal = d[key] || 0;
+      maxIdx = i;
+    }
+  });
+  return maxIdx;
+}
+
+function makeTopLabel(data, valueKey, layout) {
+  const maxIdx = findMaxIndex(data, valueKey);
+
+  return function TopLabel(props) {
+    const { x, y, width, height, index, value } = props;
+    if (index !== maxIdx) return null;
+
+    const pct = pctOfTotal(value, data, valueKey);
+    const label = shortCurrency(value);
+    const line2 = `${pct}% of total`;
+
+    if (layout === "vertical") {
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+      return (
+        <g>
+          <text x={cx} y={cy - 7} textAnchor="middle" fill="#fff" fontWeight="700" fontSize={13}>
+            {label}
+          </text>
+          <text x={cx} y={cy + 9} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={10}>
+            {line2}
+          </text>
+        </g>
+      );
+    }
+
+    const cx = x + width - 10;
+    const cy = y + height / 2;
+    return (
+      <g>
+        <text x={cx} y={cy - 6} textAnchor="end" fill="#fff" fontWeight="700" fontSize={13}>
+          {label}
+        </text>
+        <text x={cx} y={cy + 9} textAnchor="end" fill="rgba(255,255,255,0.85)" fontSize={10}>
+          {line2}
+        </text>
+      </g>
+    );
+  };
+}
+
+function makeTopLabelPct(data) {
+  const maxIdx = findMaxIndex(data, "pct");
+
+  return function TopPctLabel(props) {
+    const { x, y, width, height, index, value } = props;
+    if (index !== maxIdx) return null;
+
+    const cx = x + width - 8;
+    const cy = y + height / 2;
+    return (
+      <text x={cx} y={cy + 1} textAnchor="end" fill="#fff" fontWeight="700" fontSize={12}
+        dominantBaseline="central">
+        {value}%
+      </text>
+    );
+  };
+}
+
 function CurrencyTick({ x, y, payload }) {
-  const val = payload.value;
-  const display =
-    Math.abs(val) >= 1_000_000
-      ? `$${(val / 1_000_000).toFixed(1)}M`
-      : Math.abs(val) >= 1_000
-        ? `$${(val / 1_000).toFixed(0)}K`
-        : `$${val}`;
   return (
     <text x={x} y={y} textAnchor="end" dominantBaseline="middle" fontSize={12} fill="#64748b">
-      {display}
+      {shortCurrency(payload.value)}
     </text>
   );
 }
@@ -42,18 +117,6 @@ function CurrencyTooltip({ active, payload, label }) {
       <p className="chart-tooltip-label">{label}</p>
       <p className="chart-tooltip-value">
         ${Number(payload[0].value).toLocaleString("en-US")}
-      </p>
-    </div>
-  );
-}
-
-function CountTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="chart-tooltip">
-      <p className="chart-tooltip-label">{label}</p>
-      <p className="chart-tooltip-value">
-        {Number(payload[0].value).toLocaleString("en-US")} customers
       </p>
     </div>
   );
@@ -128,6 +191,7 @@ export default function Charts({ data }) {
                 {data.profit_by_cluster.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
+                <LabelList content={makeTopLabel(data.profit_by_cluster, "value", "vertical")} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -141,7 +205,9 @@ export default function Charts({ data }) {
               <XAxis dataKey="name" fontSize={12} tick={{ fill: "#64748b" }} />
               <YAxis tick={<CurrencyTick />} />
               <Tooltip content={<CurrencyTooltip />} />
-              <Bar dataKey="value" fill="#0891b2" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="value" fill="#0891b2" radius={[4, 4, 0, 0]}>
+                <LabelList content={makeTopLabel(data.avg_profit_by_age, "value", "vertical")} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -159,6 +225,7 @@ export default function Charts({ data }) {
                   {data.profit_by_gender.map((entry, i) => (
                     <Cell key={i} fill={GENDER_COLORS[entry.name] || COLORS[i]} />
                   ))}
+                  <LabelList content={makeTopLabel(data.profit_by_gender, "total_profit", "vertical")} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -178,31 +245,12 @@ export default function Charts({ data }) {
                   {data.profit_by_homeowner.map((entry, i) => (
                     <Cell key={i} fill={OWNER_COLORS[entry.name] || COLORS[i]} />
                   ))}
+                  <LabelList content={makeTopLabel(data.profit_by_homeowner, "total_profit", "vertical")} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         )}
-
-        {/* Customer Profit Distribution */}
-        <ChartCard title="Customer Profit Distribution" subtitle="How is profit spread across the customer base?">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.profit_distribution} margin={{ top: 5, right: 20, bottom: 40, left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis
-                dataKey="bin"
-                fontSize={10}
-                tick={{ fill: "#64748b" }}
-                angle={-35}
-                textAnchor="end"
-                interval={1}
-              />
-              <YAxis fontSize={12} tick={{ fill: "#64748b" }} />
-              <Tooltip content={<CountTooltip />} />
-              <Bar dataKey="count" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
 
         {/* Profit by Dwelling Type */}
         <ChartCard title="Profit by Dwelling Type" subtitle="Which housing types generate the most revenue?">
@@ -212,7 +260,9 @@ export default function Charts({ data }) {
               <XAxis type="number" tick={<CurrencyTick />} />
               <YAxis dataKey="name" type="category" fontSize={12} tick={{ fill: "#64748b" }} width={90} />
               <Tooltip content={<CurrencyTooltip />} />
-              <Bar dataKey="value" fill="#059669" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="value" fill="#059669" radius={[0, 4, 4, 0]}>
+                <LabelList content={makeTopLabel(data.dwelling_profit, "value", "horizontal")} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -229,7 +279,9 @@ export default function Charts({ data }) {
                   formatter={(val) => [`${val}%`, "Penetration"]}
                   contentStyle={{ borderRadius: 6, border: "1px solid #e2e8f0" }}
                 />
-                <Bar dataKey="pct" fill="#d97706" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="pct" fill="#d97706" radius={[0, 4, 4, 0]}>
+                  <LabelList content={makeTopLabelPct(data.lifestyle_data)} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -244,7 +296,9 @@ export default function Charts({ data }) {
                 <XAxis dataKey="name" fontSize={11} tick={{ fill: "#64748b" }} />
                 <YAxis tick={<CurrencyTick />} />
                 <Tooltip content={<CurrencyTooltip />} />
-                <Bar dataKey="avg_profit" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="avg_profit" fill="#4f46e5" radius={[4, 4, 0, 0]}>
+                  <LabelList content={makeTopLabel(data.profit_by_education, "avg_profit", "vertical")} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
