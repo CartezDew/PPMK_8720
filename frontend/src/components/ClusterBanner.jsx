@@ -431,18 +431,22 @@ const REVENUE_KEYS = [
   { key: "hd_revenue", label: "HD Revenue" },
 ];
 
-export default function ClusterBanner({ clusterId, summaryData, onClose }) {
+export default function ClusterBanner({ clusterId, filters, summaryData, onClose }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const narrative = CLUSTER_NARRATIVES[String(clusterId)];
+  const filtersKey = JSON.stringify(filters);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    fetchClusterProfile(clusterId)
-      .then(setProfile)
-      .catch(() => setProfile(null))
-      .finally(() => setLoading(false));
-  }, [clusterId]);
+    const f = JSON.parse(filtersKey);
+    fetchClusterProfile(clusterId, f)
+      .then((p) => { if (!cancelled) setProfile(p); })
+      .catch(() => { if (!cancelled) setProfile(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [clusterId, filtersKey]);
 
   if (!narrative) return null;
 

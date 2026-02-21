@@ -121,6 +121,7 @@ function makeBarLabel(data, valueKey, layout, focalIdx, withBg) {
       }
       const cx = x + width / 2;
       const ty = y - 6;
+      const outsideCls = withBg ? "" : " chart-label-outside";
       return (
         <g>
           {withBg && (
@@ -130,8 +131,8 @@ function makeBarLabel(data, valueKey, layout, focalIdx, withBg) {
               className="chart-label-bg"
             />
           )}
-          <text x={cx} y={ty - 7} className="chart-label-value text-anchor-middle chart-label-outside">{label}</text>
-          <text x={cx} y={ty + 7} className="chart-label-subtitle text-anchor-middle chart-label-outside">{line2}</text>
+          <text x={cx} y={ty - 7} className={`chart-label-value text-anchor-middle${outsideCls}`}>{label}</text>
+          <text x={cx} y={ty + 7} className={`chart-label-subtitle text-anchor-middle${outsideCls}`}>{line2}</text>
         </g>
       );
     }

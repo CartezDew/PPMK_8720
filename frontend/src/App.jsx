@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   fetchMetadata,
   fetchSummary,
@@ -25,6 +25,7 @@ const EMPTY_FILTERS = {
 export default function App() {
   const [metadata, setMetadata] = useState(null);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [clusterViewId, setClusterViewId] = useState(null);
   const [summary, setSummary] = useState(null);
   const [charts, setCharts] = useState(null);
   const [insights, setInsights] = useState(null);
@@ -42,50 +43,61 @@ export default function App() {
       .catch((e) => setError(e.message));
   }, []);
 
-  const isClusterView = filters.cluster.length === 1;
+  const isClusterView = clusterViewId !== null;
 
-  const loadDashboard = useCallback(() => {
+  const effectiveFilters = useMemo(
+    () => isClusterView ? { ...filters, cluster: [clusterViewId] } : filters,
+    [filters, isClusterView, clusterViewId]
+  );
+
+  const filtersKey = JSON.stringify(effectiveFilters);
+
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    const tablePromise = fetchTable(filters, {
+    const ef = JSON.parse(filtersKey);
+    const cv = clusterViewId !== null;
+
+    const tablePromise = fetchTable(ef, {
       page: tablePage,
       search: tableSearch,
       sortBy: tableSort.by,
       sortDir: tableSort.dir,
     });
 
-    if (isClusterView) {
-      Promise.all([fetchSummary(filters), tablePromise])
+    if (cv) {
+      Promise.all([fetchSummary(ef), tablePromise])
         .then(([s, t]) => {
+          if (cancelled) return;
           setSummary(s);
           setTableData(t);
           setCharts(null);
           setInsights(null);
         })
-        .catch((e) => setError(e.message))
-        .finally(() => setLoading(false));
+        .catch((e) => { if (!cancelled) setError(e.message); })
+        .finally(() => { if (!cancelled) setLoading(false); });
     } else {
       Promise.all([
-        fetchSummary(filters),
-        fetchCharts(filters),
-        fetchInsights(filters),
+        fetchSummary(ef),
+        fetchCharts(ef),
+        fetchInsights(ef),
         tablePromise,
       ])
         .then(([s, c, i, t]) => {
+          if (cancelled) return;
           setSummary(s);
           setCharts(c);
           setInsights(i);
           setTableData(t);
         })
-        .catch((e) => setError(e.message))
-        .finally(() => setLoading(false));
+        .catch((e) => { if (!cancelled) setError(e.message); })
+        .finally(() => { if (!cancelled) setLoading(false); });
     }
-  }, [filters, tablePage, tableSearch, tableSort, isClusterView]);
 
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+    return () => { cancelled = true; };
+  }, [filtersKey, clusterViewId, tablePage, tableSearch, tableSort.by, tableSort.dir]);
 
   const handleFilterChange = (key, values) => {
     setFilters((prev) => ({ ...prev, [key]: values }));
@@ -94,6 +106,7 @@ export default function App() {
 
   const handleReset = () => {
     setFilters(EMPTY_FILTERS);
+    setClusterViewId(null);
     setTablePage(1);
     setTableSearch("");
     setTableSort({ by: "Total Profit", dir: "desc" });
@@ -118,12 +131,12 @@ export default function App() {
         <div className="header-brand">
           <h1>
             {isClusterView
-              ? `Cluster ${filters.cluster[0]} — Customer Insights`
+              ? `Cluster ${clusterViewId} — Customer Insights`
               : "Customer Insights Dashboard"}
           </h1>
           <span className="header-subtitle">
             {isClusterView
-              ? `Viewing Segment ${filters.cluster[0]} customers`
+              ? `Viewing Segment ${clusterViewId} customers`
               : "Cable & Satellite Service Analytics"}
           </span>
         </div>
@@ -144,7 +157,7 @@ export default function App() {
             filters={filters}
             onChange={handleFilterChange}
             onReset={handleReset}
-            onSelectCluster={(id) => handleFilterChange("cluster", [id])}
+            onSelectCluster={(id) => setClusterViewId(id)}
           />
         )}
       </aside>
@@ -155,14 +168,15 @@ export default function App() {
         {isClusterView ? (
           <>
             <ClusterBanner
-              clusterId={filters.cluster[0]}
+              clusterId={clusterViewId}
+              filters={effectiveFilters}
               summaryData={summary}
-              onClose={() => handleFilterChange("cluster", [])}
+              onClose={() => setClusterViewId(null)}
             />
 
             <DataTable
               data={tableData}
-              filters={filters}
+              filters={effectiveFilters}
               search={tableSearch}
               sort={tableSort}
               page={tablePage}
@@ -177,7 +191,9 @@ export default function App() {
 
             <Charts data={charts} />
 
-            <CustomerInsights data={insights} charts={charts} />
+            {filters.cluster.length === 0 && (
+              <CustomerInsights data={insights} charts={charts} />
+            )}
 
             <DataTable
               data={tableData}
