@@ -60,3 +60,16 @@ export async function fetchTable(filters = {}, { page = 1, pageSize = 50, search
   const sep = qs ? `${qs}&${extra}` : extra.toString();
   return fetchJSON(`/api/table/?${sep}`);
 }
+
+export async function fetchAllRecords(filters = {}, { search = "", sortBy = "Total Profit", sortDir = "desc" } = {}) {
+  const qs = buildQuery(filters);
+  const extra = new URLSearchParams({
+    page: "1",
+    page_size: "99999",
+    sort_by: sortBy,
+    sort_dir: sortDir,
+  });
+  if (search) extra.set("search", search);
+  const sep = qs ? `${qs}&${extra}` : extra.toString();
+  return fetchJSON(`/api/table/?${sep}`);
+}

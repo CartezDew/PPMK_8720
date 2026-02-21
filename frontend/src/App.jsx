@@ -33,6 +33,7 @@ export default function App() {
   const [tableSort, setTableSort] = useState({ by: "Total Profit", dir: "desc" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     fetchMetadata()
@@ -94,7 +95,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
       <header className="app-header">
         <div className="header-brand">
           <h1>Customer Insights Dashboard</h1>
@@ -104,7 +105,14 @@ export default function App() {
       </header>
 
       <aside className="sidebar">
-        {metadata && (
+        <button
+          className="sidebar-toggle"
+          onClick={() => setSidebarOpen((o) => !o)}
+          title={sidebarOpen ? "Collapse filters" : "Expand filters"}
+        >
+          <span className={`sidebar-toggle-arrow ${sidebarOpen ? "" : "collapsed"}`}>&#x2039;</span>
+        </button>
+        {sidebarOpen && metadata && (
           <Filters
             metadata={metadata}
             filters={filters}
@@ -125,6 +133,7 @@ export default function App() {
 
         <DataTable
           data={tableData}
+          filters={filters}
           search={tableSearch}
           sort={tableSort}
           page={tablePage}

@@ -75,7 +75,9 @@ export default function KpiCards({ data }) {
       <div className="kpi-section">
         <h3 className="kpi-section-title">Revenue by Service</h3>
         <div className="kpi-grid">
-          {REVENUE_KPIS.map(({ key, label, unit }) => (
+          {[...REVENUE_KPIS]
+            .sort((a, b) => (data?.[b.key] || 0) - (data?.[a.key] || 0))
+            .map(({ key, label, unit }) => (
             <RevenueCard
               key={key}
               label={label}

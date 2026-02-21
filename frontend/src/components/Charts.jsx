@@ -1,3 +1,4 @@
+import { useState, useCallback, useRef } from "react";
 import {
   BarChart,
   Bar,
@@ -12,13 +13,14 @@ import {
   LabelList,
 } from "recharts";
 
-const COLORS = [
-  "#4f46e5", "#0891b2", "#059669", "#d97706",
+const RANKED = [
+  "#0891b2", "#4f46e5", "#059669", "#d97706",
   "#dc2626", "#7c3aed", "#db2777", "#2563eb",
+  "#64748b", "#94a3b8",
 ];
 
-const GENDER_COLORS = { Female: "#db2777", Male: "#2563eb", Unknown: "#94a3b8" };
-const OWNER_COLORS = { Homeowner: "#059669", Renter: "#d97706", Unknown: "#94a3b8" };
+const FULL_OPACITY = 1;
+const DIM_OPACITY = 0.55;
 
 function shortCurrency(val) {
   if (Math.abs(val) >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
@@ -26,9 +28,10 @@ function shortCurrency(val) {
   return `$${Math.round(val)}`;
 }
 
-function pctOfTotal(val, data, key) {
-  const total = data.reduce((s, d) => s + (d[key] || 0), 0);
-  return total > 0 ? Math.round((val / total) * 100) : 0;
+function customerPct(data, index) {
+  const totalCustomers = data.reduce((s, d) => s + (d.count || 0), 0);
+  const groupCount = data[index]?.count || 0;
+  return totalCustomers > 0 ? Math.round((groupCount / totalCustomers) * 100) : 0;
 }
 
 function findMaxIndex(data, key) {
@@ -43,81 +46,171 @@ function findMaxIndex(data, key) {
   return maxIdx;
 }
 
-function makeTopLabel(data, valueKey, layout) {
-  const maxIdx = findMaxIndex(data, valueKey);
+function rankedFills(data, key) {
+  const ranked = data
+    .map((d, i) => ({ i, v: d[key] || 0 }))
+    .sort((a, b) => b.v - a.v);
+  const fills = new Array(data.length);
+  ranked.forEach(({ i }, rank) => {
+    fills[i] = RANKED[rank % RANKED.length];
+  });
+  return fills;
+}
 
-  return function TopLabel(props) {
+function useBarFocus(maxIdx) {
+  const [hovered, setHovered] = useState(null);
+  const [clicked, setClicked] = useState(null);
+  const hoverTimer = useRef(null);
+
+  const focal = clicked ?? hovered;
+  const showLabel = hovered === null;
+  const labelIdx = showLabel ? (clicked ?? maxIdx) : -1;
+
+  const opacity = useCallback(
+    (i) => {
+      if (focal === null) return i === maxIdx ? FULL_OPACITY : DIM_OPACITY;
+      return i === focal ? FULL_OPACITY : DIM_OPACITY;
+    },
+    [focal, maxIdx]
+  );
+
+  const onEnter = useCallback((_, idx) => {
+    clearTimeout(hoverTimer.current);
+    setHovered(idx);
+  }, []);
+
+  const onLeave = useCallback(() => {
+    hoverTimer.current = setTimeout(() => setHovered(null), 80);
+  }, []);
+
+  const onClick = useCallback(
+    (_, idx) => setClicked((prev) => (prev === idx ? null : idx)),
+    []
+  );
+
+  return { labelIdx, opacity, onEnter, onLeave, onClick };
+}
+
+function makeBarLabel(data, valueKey, layout, focalIdx, withBg) {
+  return function BarLabel(props) {
     const { x, y, width, height, index, value } = props;
-    if (index !== maxIdx) return null;
+    if (focalIdx < 0 || index !== focalIdx) return null;
 
-    const pct = pctOfTotal(value, data, valueKey);
+    const pct = customerPct(data, index);
     const label = shortCurrency(value);
-    const line2 = `${pct}% of total`;
+    const line2 = `${pct}% of customers`;
 
     if (layout === "vertical") {
+      const fitsInside = height > 36 && width > 80;
+      if (fitsInside) {
+        const cx = x + width / 2;
+        const cy = y + height / 2;
+        return (
+          <g>
+            {withBg && (
+              <rect
+                x={cx - 52} y={cy - 16}
+                width={104} height={32} rx={6}
+                className="chart-label-bg"
+              />
+            )}
+            <text x={cx} y={cy - 3} className="chart-label-value text-anchor-middle">{label}</text>
+            <text x={cx} y={cy + 11} className="chart-label-subtitle text-anchor-middle">{line2}</text>
+          </g>
+        );
+      }
       const cx = x + width / 2;
-      const cy = y + height / 2;
+      const ty = y - 6;
       return (
         <g>
-          <text x={cx} y={cy - 7} textAnchor="middle" fill="#fff" fontWeight="700" fontSize={13}>
-            {label}
-          </text>
-          <text x={cx} y={cy + 9} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={10}>
-            {line2}
-          </text>
+          {withBg && (
+            <rect
+              x={cx - 52} y={ty - 20}
+              width={104} height={32} rx={6}
+              className="chart-label-bg"
+            />
+          )}
+          <text x={cx} y={ty - 7} className="chart-label-value text-anchor-middle chart-label-outside">{label}</text>
+          <text x={cx} y={ty + 7} className="chart-label-subtitle text-anchor-middle chart-label-outside">{line2}</text>
         </g>
       );
     }
 
-    const cx = x + width - 10;
+    const fitsInside = width > 160;
+    if (fitsInside) {
+      const cx = x + width - 12;
+      const cy = y + height / 2;
+      return (
+        <g>
+          <text x={cx} y={cy - 4} className="chart-label-value text-anchor-end">{label}</text>
+          <text x={cx} y={cy + 10} className="chart-label-subtitle text-anchor-end">{line2}</text>
+        </g>
+      );
+    }
+    const lx = x + width + 10;
     const cy = y + height / 2;
     return (
       <g>
-        <text x={cx} y={cy - 6} textAnchor="end" fill="#fff" fontWeight="700" fontSize={13}>
-          {label}
-        </text>
-        <text x={cx} y={cy + 9} textAnchor="end" fill="rgba(255,255,255,0.85)" fontSize={10}>
-          {line2}
-        </text>
+        <text x={lx} y={cy - 4} className="chart-label-value chart-label-outside">{label}</text>
+        <text x={lx} y={cy + 10} className="chart-label-subtitle chart-label-outside">{line2}</text>
       </g>
     );
   };
 }
 
-function makeTopLabelPct(data) {
-  const maxIdx = findMaxIndex(data, "pct");
-
-  return function TopPctLabel(props) {
+function makePctLabel(data, focalIdx) {
+  return function PctLabel(props) {
     const { x, y, width, height, index, value } = props;
-    if (index !== maxIdx) return null;
+    if (focalIdx < 0 || index !== focalIdx) return null;
 
-    const cx = x + width - 8;
+    const pct = customerPct(data, index);
+    const fitsInside = width > 160;
+
+    if (fitsInside) {
+      const cx = x + width - 12;
+      const cy = y + height / 2;
+      return (
+        <g>
+          <text x={cx} y={cy - 4} className="chart-label-pct text-anchor-end">{value}%</text>
+          <text x={cx} y={cy + 10} className="chart-label-subtitle text-anchor-end">{pct}% of customers</text>
+        </g>
+      );
+    }
+    const lx = x + width + 10;
     const cy = y + height / 2;
     return (
-      <text x={cx} y={cy + 1} textAnchor="end" fill="#fff" fontWeight="700" fontSize={12}
-        dominantBaseline="central">
-        {value}%
-      </text>
+      <g>
+        <text x={lx} y={cy - 4} className="chart-label-pct chart-label-outside">{value}%</text>
+        <text x={lx} y={cy + 10} className="chart-label-subtitle chart-label-outside">{pct}% of customers</text>
+      </g>
     );
   };
 }
 
 function CurrencyTick({ x, y, payload }) {
   return (
-    <text x={x} y={y} textAnchor="end" dominantBaseline="middle" fontSize={12} fill="#64748b">
+    <text x={x} y={y} className="chart-tick-label text-anchor-end">
       {shortCurrency(payload.value)}
     </text>
   );
 }
 
-function CurrencyTooltip({ active, payload, label }) {
+function CurrencyTooltip({ active, payload, label, totalCustomers }) {
   if (!active || !payload?.length) return null;
+  const entry = payload[0].payload;
+  const count = entry?.count || 0;
+  const pct = totalCustomers > 0 ? Math.round((count / totalCustomers) * 100) : 0;
   return (
     <div className="chart-tooltip">
       <p className="chart-tooltip-label">{label}</p>
       <p className="chart-tooltip-value">
         ${Number(payload[0].value).toLocaleString("en-US")}
       </p>
+      {count > 0 && (
+        <>
+          <p className="chart-tooltip-detail">{Number(count).toLocaleString("en-US")} customers ({pct}%)</p>
+        </>
+      )}
     </div>
   );
 }
@@ -131,6 +224,7 @@ function PieTooltip({ active, payload }) {
       <p className="chart-tooltip-value">
         ${Number(d.value).toLocaleString("en-US")}
       </p>
+      <p className="chart-tooltip-detail">{(d.percent * 100).toFixed(1)}% of total</p>
     </div>
   );
 }
@@ -145,163 +239,219 @@ function ChartCard({ title, subtitle, children }) {
   );
 }
 
+function VerticalBarChart({ data, valueKey, fills, title, subtitle, labelBg }) {
+  const maxIdx = findMaxIndex(data, valueKey);
+  const { labelIdx, opacity, onEnter, onLeave, onClick } = useBarFocus(maxIdx);
+  const totalCustomers = data.reduce((s, d) => s + (d.count || 0), 0);
+
+  return (
+    <ChartCard title={title} subtitle={subtitle}>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data} margin={{ top: 30, right: 20, bottom: 5, left: 20 }}>
+          <CartesianGrid />
+          <XAxis dataKey="name" />
+          <YAxis tick={<CurrencyTick />} />
+          <Tooltip content={<CurrencyTooltip totalCustomers={totalCustomers} />} />
+          <Bar
+            dataKey={valueKey}
+            radius={[4, 4, 0, 0]}
+            onMouseEnter={onEnter}
+            onMouseLeave={onLeave}
+            onClick={onClick}
+          >
+            {fills.map((fill, i) => (
+              <Cell key={i} fill={fill} fillOpacity={opacity(i)} />
+            ))}
+            <LabelList content={makeBarLabel(data, valueKey, "vertical", labelIdx, labelBg && data.length > 3)} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+function HorizontalBarChart({ data, valueKey, fills, title, subtitle }) {
+  const maxIdx = findMaxIndex(data, valueKey);
+  const { labelIdx, opacity, onEnter, onLeave, onClick } = useBarFocus(maxIdx);
+  const totalCustomers = data.reduce((s, d) => s + (d.count || 0), 0);
+
+  return (
+    <ChartCard title={title} subtitle={subtitle}>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 120, bottom: 5, left: 100 }}>
+          <CartesianGrid />
+          <XAxis type="number" tick={<CurrencyTick />} />
+          <YAxis dataKey="name" type="category" width={90} />
+          <Tooltip content={<CurrencyTooltip totalCustomers={totalCustomers} />} />
+          <Bar
+            dataKey={valueKey}
+            radius={[0, 4, 4, 0]}
+            onMouseEnter={onEnter}
+            onMouseLeave={onLeave}
+            onClick={onClick}
+          >
+            {fills.map((fill, i) => (
+              <Cell key={i} fill={fill} fillOpacity={opacity(i)} />
+            ))}
+            <LabelList content={makeBarLabel(data, valueKey, "horizontal", labelIdx)} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+function LifestyleBarChart({ data, fills, title, subtitle }) {
+  const maxIdx = findMaxIndex(data, "pct");
+  const { labelIdx, opacity, onEnter, onLeave, onClick } = useBarFocus(maxIdx);
+
+  return (
+    <ChartCard title={title} subtitle={subtitle}>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 120, bottom: 5, left: 90 }}>
+          <CartesianGrid />
+          <XAxis type="number" unit="%" />
+          <YAxis dataKey="name" type="category" width={80} />
+          <Tooltip formatter={(val) => [`${val}%`, "Penetration"]} />
+          <Bar
+            dataKey="pct"
+            radius={[0, 4, 4, 0]}
+            onMouseEnter={onEnter}
+            onMouseLeave={onLeave}
+            onClick={onClick}
+          >
+            {fills.map((fill, i) => (
+              <Cell key={i} fill={fill} fillOpacity={opacity(i)} />
+            ))}
+            <LabelList content={makePctLabel(data, labelIdx)} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+function PieChartCard({ data, fills, title, subtitle }) {
+  const maxIdx = findMaxIndex(data, "value");
+  const { labelIdx, opacity, onEnter, onLeave, onClick } = useBarFocus(maxIdx);
+
+  return (
+    <ChartCard title={title} subtitle={subtitle}>
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            outerRadius={100}
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            labelLine={true}
+            onMouseEnter={onEnter}
+            onMouseLeave={onLeave}
+            onClick={onClick}
+          >
+            {fills.map((fill, i) => (
+              <Cell key={i} fill={fill} fillOpacity={opacity(i)} />
+            ))}
+          </Pie>
+          <Tooltip content={<PieTooltip />} />
+        </PieChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
 export default function Charts({ data }) {
   if (!data) return null;
+
+  const clusterFills = rankedFills(data.profit_by_cluster, "value");
+  const ageFills = rankedFills(data.avg_profit_by_age, "value");
+  const genderFills = data.profit_by_gender ? rankedFills(data.profit_by_gender, "total_profit") : [];
+  const ownerFills = data.profit_by_homeowner ? rankedFills(data.profit_by_homeowner, "total_profit") : [];
+  const dwellingFills = rankedFills(data.dwelling_profit, "value");
+  const lifestyleFills = data.lifestyle_data ? rankedFills(data.lifestyle_data, "pct") : [];
+  const eduFills = data.profit_by_education ? rankedFills(data.profit_by_education, "avg_profit") : [];
+  const pieFills = data.profit_components ? rankedFills(data.profit_components, "value") : [];
 
   return (
     <section className="charts-section">
       <h2 className="section-heading">Marketing Analytics</h2>
 
       <div className="charts-grid">
-        {/* Revenue by Service Component */}
         {data.profit_components?.length > 0 && (
-          <ChartCard title="Revenue by Service Component" subtitle="Which services drive the most profit?">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={data.profit_components}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={true}
-                  fontSize={11}
-                >
-                  {data.profit_components.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<PieTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          <PieChartCard
+            data={data.profit_components}
+            fills={pieFills}
+            title="Revenue by Service Component"
+            subtitle="Which services drive the most profit?"
+          />
         )}
 
-        {/* Profit by Customer Segment (Cluster) */}
-        <ChartCard title="Total Profit by Customer Segment" subtitle="Segment profitability for targeting">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.profit_by_cluster} margin={{ top: 5, right: 20, bottom: 5, left: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="name" fontSize={12} tick={{ fill: "#64748b" }} />
-              <YAxis tick={<CurrencyTick />} />
-              <Tooltip content={<CurrencyTooltip />} />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                {data.profit_by_cluster.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-                <LabelList content={makeTopLabel(data.profit_by_cluster, "value", "vertical")} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        <VerticalBarChart
+          data={data.profit_by_cluster}
+          valueKey="value"
+          fills={clusterFills}
+          title="Total Profit by Customer Segment"
+          subtitle="Segment profitability for targeting"
+          labelBg
+        />
 
-        {/* Avg Profit by Age Group */}
-        <ChartCard title="Avg Customer Profit by Age Group" subtitle="Which age demographics are most valuable?">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.avg_profit_by_age} margin={{ top: 5, right: 20, bottom: 5, left: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="name" fontSize={12} tick={{ fill: "#64748b" }} />
-              <YAxis tick={<CurrencyTick />} />
-              <Tooltip content={<CurrencyTooltip />} />
-              <Bar dataKey="value" fill="#0891b2" radius={[4, 4, 0, 0]}>
-                <LabelList content={makeTopLabel(data.avg_profit_by_age, "value", "vertical")} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        <VerticalBarChart
+          data={data.avg_profit_by_age}
+          valueKey="value"
+          fills={ageFills}
+          title="Avg Customer Profit by Age Group"
+          subtitle="Which age demographics are most valuable?"
+          labelBg
+        />
 
-        {/* Profit by Gender */}
         {data.profit_by_gender?.length > 0 && (
-          <ChartCard title="Total Profit by Gender" subtitle="Gender-based profitability comparison">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.profit_by_gender} margin={{ top: 5, right: 20, bottom: 5, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" fontSize={12} tick={{ fill: "#64748b" }} />
-                <YAxis tick={<CurrencyTick />} />
-                <Tooltip content={<CurrencyTooltip />} />
-                <Bar dataKey="total_profit" radius={[4, 4, 0, 0]}>
-                  {data.profit_by_gender.map((entry, i) => (
-                    <Cell key={i} fill={GENDER_COLORS[entry.name] || COLORS[i]} />
-                  ))}
-                  <LabelList content={makeTopLabel(data.profit_by_gender, "total_profit", "vertical")} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          <VerticalBarChart
+            data={data.profit_by_gender}
+            valueKey="total_profit"
+            fills={genderFills}
+            title="Total Profit by Gender"
+            subtitle="Gender-based profitability comparison"
+          />
         )}
 
-        {/* Profit by Homeowner Status */}
         {data.profit_by_homeowner?.length > 0 && (
-          <ChartCard title="Profit: Homeowners vs Renters" subtitle="Ownership segment comparison">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.profit_by_homeowner} margin={{ top: 5, right: 20, bottom: 5, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" fontSize={12} tick={{ fill: "#64748b" }} />
-                <YAxis tick={<CurrencyTick />} />
-                <Tooltip content={<CurrencyTooltip />} />
-                <Bar dataKey="total_profit" radius={[4, 4, 0, 0]}>
-                  {data.profit_by_homeowner.map((entry, i) => (
-                    <Cell key={i} fill={OWNER_COLORS[entry.name] || COLORS[i]} />
-                  ))}
-                  <LabelList content={makeTopLabel(data.profit_by_homeowner, "total_profit", "vertical")} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          <VerticalBarChart
+            data={data.profit_by_homeowner}
+            valueKey="total_profit"
+            fills={ownerFills}
+            title="Profit: Homeowners vs Renters"
+            subtitle="Ownership segment comparison"
+          />
         )}
 
-        {/* Profit by Dwelling Type */}
-        <ChartCard title="Profit by Dwelling Type" subtitle="Which housing types generate the most revenue?">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.dwelling_profit} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 100 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis type="number" tick={<CurrencyTick />} />
-              <YAxis dataKey="name" type="category" fontSize={12} tick={{ fill: "#64748b" }} width={90} />
-              <Tooltip content={<CurrencyTooltip />} />
-              <Bar dataKey="value" fill="#059669" radius={[0, 4, 4, 0]}>
-                <LabelList content={makeTopLabel(data.dwelling_profit, "value", "horizontal")} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        <HorizontalBarChart
+          data={data.dwelling_profit}
+          valueKey="value"
+          fills={dwellingFills}
+          title="Profit by Dwelling Type"
+          subtitle="Which housing types generate the most revenue?"
+        />
 
-        {/* Customer Lifestyle Interests */}
         {data.lifestyle_data?.length > 0 && (
-          <ChartCard title="Customer Lifestyle Interests" subtitle="% of customers with each interest indicator">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.lifestyle_data} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 90 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis type="number" unit="%" fontSize={12} tick={{ fill: "#64748b" }} />
-                <YAxis dataKey="name" type="category" fontSize={12} tick={{ fill: "#64748b" }} width={80} />
-                <Tooltip
-                  formatter={(val) => [`${val}%`, "Penetration"]}
-                  contentStyle={{ borderRadius: 6, border: "1px solid #e2e8f0" }}
-                />
-                <Bar dataKey="pct" fill="#d97706" radius={[0, 4, 4, 0]}>
-                  <LabelList content={makeTopLabelPct(data.lifestyle_data)} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          <LifestyleBarChart
+            data={data.lifestyle_data}
+            fills={lifestyleFills}
+            title="Customer Lifestyle Interests"
+            subtitle="% of customers with each interest indicator"
+          />
         )}
 
-        {/* Avg Profit by Education Level */}
         {data.profit_by_education?.length > 0 && (
-          <ChartCard title="Avg Profit by Education Level" subtitle="Does education correlate with customer value?">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.profit_by_education} margin={{ top: 5, right: 20, bottom: 5, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" fontSize={11} tick={{ fill: "#64748b" }} />
-                <YAxis tick={<CurrencyTick />} />
-                <Tooltip content={<CurrencyTooltip />} />
-                <Bar dataKey="avg_profit" fill="#4f46e5" radius={[4, 4, 0, 0]}>
-                  <LabelList content={makeTopLabel(data.profit_by_education, "avg_profit", "vertical")} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          <VerticalBarChart
+            data={data.profit_by_education}
+            valueKey="avg_profit"
+            fills={eduFills}
+            title="Avg Profit by Education Level"
+            subtitle="Does education correlate with customer value?"
+          />
         )}
       </div>
     </section>
