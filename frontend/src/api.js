@@ -61,6 +61,10 @@ export async function fetchTable(filters = {}, { page = 1, pageSize = 50, search
   return fetchJSON(`/api/table/?${sep}`);
 }
 
+export async function fetchClusterProfile(clusterId) {
+  return fetchJSON(`/api/cluster-profile/${clusterId}/`);
+}
+
 export async function fetchAllRecords(filters = {}, { search = "", sortBy = "Total Profit", sortDir = "desc" } = {}) {
   const qs = buildQuery(filters);
   const extra = new URLSearchParams({

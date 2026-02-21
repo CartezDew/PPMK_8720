@@ -376,7 +376,7 @@ export default function Charts({ data }) {
   const pieFills = data.profit_components ? rankedFills(data.profit_components, "value") : [];
 
   return (
-    <section className="charts-section">
+    <section id="section-charts" className="charts-section">
       <h2 className="section-heading">Marketing Analytics</h2>
 
       <div className="charts-grid">

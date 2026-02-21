@@ -1,7 +1,51 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
+function DownloadIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 1v9m0 0L5 7m3 3 3-3M2 12v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function ExportButtons({ onExcel, onPdf }) {
+  return (
+    <div className="card-export-buttons">
+      <button className="card-export-btn card-export-btn--csv" onClick={onExcel} title="Download Excel">
+        <DownloadIcon /> <span>CSV</span>
+      </button>
+      <button className="card-export-btn card-export-btn--pdf" onClick={onPdf} title="Download PDF">
+        <DownloadIcon /> <span>PDF</span>
+      </button>
+    </div>
+  );
+}
+
+function exportSheetAsExcel(sheetData, headers, filename) {
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...sheetData]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+  XLSX.writeFile(wb, filename);
+}
+
+function exportTableAsPdf(title, headers, bodyRows, filename) {
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
+  doc.setFontSize(14);
+  doc.setTextColor(30, 58, 95);
+  doc.text(title, 40, 40);
+  autoTable(doc, {
+    startY: 56,
+    head: [headers],
+    body: bodyRows,
+    styles: { fontSize: 8, cellPadding: 4 },
+    headStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: "bold" },
+    margin: { left: 40, right: 40 },
+  });
+  doc.save(filename);
+}
 
 const DISPLAY_COLS = [
   { key: "Customer Code", label: "Cust. ID", type: "id" },
@@ -30,7 +74,7 @@ function numericVal(val) {
   return isNaN(n) ? 0 : n;
 }
 
-function MiniTable({ title, accent, rows, columns }) {
+function MiniTable({ title, accent, rows, columns, onExportExcel, onExportPdf }) {
   const cols = DISPLAY_COLS.filter((c) => columns.includes(c.key));
 
   const [sortKey, setSortKey] = useState(null);
@@ -75,6 +119,7 @@ function MiniTable({ title, accent, rows, columns }) {
     <div className={`insight-table-card ${accent}`}>
       <div className="insight-table-header">
         <h4 className="insight-table-title">{title}</h4>
+        {onExportExcel && onExportPdf && <ExportButtons onExcel={onExportExcel} onPdf={onExportPdf} />}
       </div>
       <div className="table-wrapper">
         <table className="data-table insight-table">
@@ -138,7 +183,159 @@ function MiniTable({ title, accent, rows, columns }) {
   );
 }
 
-function ClusterTable({ clusters }) {
+const DETAIL_COLS = [
+  { key: "Customer Code", label: "Cust. ID", fmt: (v) => String(v) },
+  { key: "Total Profit", label: "Profit", fmt: (v) => `$${Number(v).toLocaleString("en-US")}` },
+  { key: "# of Receivers", label: "Receivers", fmt: (v) => Number(v).toLocaleString("en-US") },
+  { key: "DVR Service Profit", label: "DVR Rev", fmt: (v) => `$${Number(v).toLocaleString("en-US")}` },
+  { key: "HD Service Profit", label: "HD Rev", fmt: (v) => `$${Number(v).toLocaleString("en-US")}` },
+  { key: "Age Group", label: "Age", fmt: (v) => v },
+  { key: "Gender", label: "Gender", fmt: (v) => v },
+  { key: "Cluster", label: "Seg.", fmt: (v) => v },
+];
+
+function BucketTable({ title, accent, rows, variant, onExportExcel, onExportPdf }) {
+  const isTop = variant === "top";
+  const [sortKey, setSortKey] = useState("profit");
+  const [sortDir, setSortDir] = useState(isTop ? "desc" : "asc");
+  const [expanded, setExpanded] = useState({});
+
+  const toggleExpand = (profit) => {
+    setExpanded((prev) => ({ ...prev, [profit]: !prev[profit] }));
+  };
+
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
+  const sorted = useMemo(() => {
+    if (!rows?.length) return [];
+    return [...rows].sort((a, b) => {
+      const av = a[sortKey] ?? 0;
+      const bv = b[sortKey] ?? 0;
+      return sortDir === "asc" ? av - bv : bv - av;
+    });
+  }, [rows, sortKey, sortDir]);
+
+  const totals = useMemo(() => {
+    if (!sorted.length) return { count: 0, sum_profit: 0 };
+    return {
+      count: sorted.reduce((s, r) => s + (r.count || 0), 0),
+      sum_profit: sorted.reduce((s, r) => s + (r.sum_profit || 0), 0),
+    };
+  }, [sorted]);
+
+  if (!rows?.length) return null;
+
+  const cols = [
+    { key: "profit", label: "Profit Bucket" },
+    { key: "count", label: "Customers" },
+    { key: isTop ? "max_profit" : "min_profit", label: isTop ? "Max Profit" : "Min Profit" },
+    { key: "sum_profit", label: "Sum of Profit" },
+  ];
+
+  const colSpan = cols.length + 1;
+
+  return (
+    <div className={`insight-table-card ${accent}`}>
+      <div className="insight-table-header">
+        <h4 className="insight-table-title">{title}</h4>
+        {onExportExcel && onExportPdf && <ExportButtons onExcel={onExportExcel} onPdf={onExportPdf} />}
+      </div>
+      <div className="table-wrapper">
+        <table className="data-table insight-table">
+          <thead>
+            <tr>
+              <th></th>
+              {cols.map((c) => {
+                const active = sortKey === c.key;
+                return (
+                  <th key={c.key} className="sortable" onClick={() => handleSort(c.key)}>
+                    {c.label}
+                    {active && <span className="sort-arrow">{sortDir === "asc" ? " ↑" : " ↓"}</span>}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((row, i) => {
+              const canExpand = row.count > 1;
+              const isOpen = canExpand && expanded[row.profit];
+              const customers = row.customers || [];
+              return (
+                <>
+                  <tr
+                    key={`b-${i}`}
+                    className={`bucket-row ${isOpen ? "bucket-row-open" : ""} ${canExpand ? "" : "bucket-row-static"}`}
+                    onClick={canExpand ? () => toggleExpand(row.profit) : undefined}
+                  >
+                    <td className="bucket-toggle">
+                      {canExpand && (
+                        <span className={`bucket-arrow ${isOpen ? "open" : ""}`}>&#x25B6;</span>
+                      )}
+                    </td>
+                    <td>${Number(row.profit).toLocaleString("en-US")}</td>
+                    <td>{Number(row.count).toLocaleString("en-US")}</td>
+                    <td>${Number(row[isTop ? "max_profit" : "min_profit"]).toLocaleString("en-US")}</td>
+                    <td>${Number(row.sum_profit).toLocaleString("en-US")}</td>
+                  </tr>
+                  {isOpen && customers.length > 0 && (
+                    <tr key={`d-${i}`} className="bucket-detail-row">
+                      <td colSpan={colSpan} className="bucket-detail-cell">
+                        <div className="bucket-detail-wrap">
+                          <table className="bucket-detail-table">
+                            <thead>
+                              <tr>
+                                {DETAIL_COLS.map((c) => (
+                                  <th key={c.key}>{c.label}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {customers.map((cust, ci) => (
+                                <tr key={ci}>
+                                  {DETAIL_COLS.map((c) => (
+                                    <td key={c.key}>{c.fmt(cust[c.key])}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {row.count > customers.length && (
+                            <p className="bucket-detail-more">
+                              Showing {customers.length} of {row.count.toLocaleString()} customers
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="summary-row">
+              <td className="summary-label"></td>
+              <td>Grand Total</td>
+              <td>{totals.count.toLocaleString("en-US")}</td>
+              <td></td>
+              <td>${totals.sum_profit.toLocaleString("en-US")}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ClusterTable({ clusters, onExportExcel, onExportPdf }) {
   const totals = useMemo(() => {
     if (!clusters?.length) return { customers: 0, total_profit: 0 };
     return {
@@ -151,10 +348,15 @@ function ClusterTable({ clusters }) {
 
   return (
     <div className="insight-table-card accent-blue">
-      <h4 className="insight-table-title">Customer Segment Summary</h4>
-      <p className="insight-table-desc">
-        Strategic overview of each customer segment for targeting decisions.
-      </p>
+      <div className="insight-table-header">
+        <div>
+          <h4 className="insight-table-title">Customer Segment Summary</h4>
+          <p className="insight-table-desc">
+            Strategic overview of each customer segment for targeting decisions.
+          </p>
+        </div>
+        {onExportExcel && onExportPdf && <ExportButtons onExcel={onExportExcel} onPdf={onExportPdf} />}
+      </div>
       <div className="table-wrapper">
         <table className="data-table insight-table">
           <thead>
@@ -195,150 +397,92 @@ function ClusterTable({ clusters }) {
   );
 }
 
-function downloadExcel(data) {
-  const cols = DISPLAY_COLS.filter((c) => (data.columns || []).includes(c.key));
-  const headers = cols.map((c) => c.label);
-
-  const toSheetRows = (rows) =>
-    rows.map((r) => cols.map((c) => fmtCell(r[c.key], c.type)));
-
-  const wb = XLSX.utils.book_new();
-
-  const topWs = XLSX.utils.aoa_to_sheet([headers, ...toSheetRows(data.top10 || [])]);
-  XLSX.utils.book_append_sheet(wb, topWs, "Top 10 Profitable");
-
-  const bottomWs = XLSX.utils.aoa_to_sheet([headers, ...toSheetRows(data.bottom10 || [])]);
-  XLSX.utils.book_append_sheet(wb, bottomWs, "Bottom 10 Profitable");
-
-  if (data.cluster_summary?.length) {
-    const clusterHeaders = ["Segment", "Customers", "Total Profit", "Avg Profit", "Median Profit", "Avg Receivers", "Avg PPV"];
-    const clusterRows = data.cluster_summary.map((c) => [
-      c.cluster,
-      c.customers,
-      `$${c.total_profit.toLocaleString()}`,
-      `$${c.avg_profit.toLocaleString()}`,
-      `$${c.median_profit.toLocaleString()}`,
-      c.avg_receivers,
-      c.avg_ppv,
-    ]);
-    const clusterWs = XLSX.utils.aoa_to_sheet([clusterHeaders, ...clusterRows]);
-    XLSX.utils.book_append_sheet(wb, clusterWs, "Segment Summary");
-  }
-
-  XLSX.writeFile(wb, "customer_profitability_report.xlsx");
-}
-
-function downloadPDF(data) {
-  const cols = DISPLAY_COLS.filter((c) => (data.columns || []).includes(c.key));
-  const headers = cols.map((c) => c.label);
-
-  const toRows = (rows) =>
-    rows.map((r) => cols.map((c) => fmtCell(r[c.key], c.type)));
-
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
-
-  doc.setFontSize(16);
-  doc.setTextColor(30, 58, 95);
-  doc.text("Customer Profitability Report", 40, 40);
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139);
-  doc.text("Cable & Satellite Service Analytics", 40, 56);
-
-  let y = 72;
-
-  doc.setFontSize(12);
-  doc.setTextColor(30, 58, 95);
-  doc.text("Top 10 Most Profitable Customers", 40, y);
-  y += 4;
-  autoTable(doc, {
-    startY: y,
-    head: [headers],
-    body: toRows(data.top10 || []),
-    styles: { fontSize: 8, cellPadding: 4 },
-    headStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: "bold" },
-    margin: { left: 40, right: 40 },
-  });
-
-  y = doc.lastAutoTable.finalY + 20;
-  doc.setFontSize(12);
-  doc.setTextColor(30, 58, 95);
-  doc.text("Bottom 10 Least Profitable Customers", 40, y);
-  y += 4;
-  autoTable(doc, {
-    startY: y,
-    head: [headers],
-    body: toRows(data.bottom10 || []),
-    styles: { fontSize: 8, cellPadding: 4 },
-    headStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: "bold" },
-    margin: { left: 40, right: 40 },
-  });
-
-  if (data.cluster_summary?.length) {
-    y = doc.lastAutoTable.finalY + 20;
-    if (y > doc.internal.pageSize.getHeight() - 80) {
-      doc.addPage();
-      y = 40;
-    }
-    doc.setFontSize(12);
-    doc.setTextColor(30, 58, 95);
-    doc.text("Customer Segment Summary", 40, y);
-    y += 4;
-    const clusterHeaders = ["Segment", "Customers", "Total Profit", "Avg Profit", "Median Profit", "Avg Receivers", "Avg PPV"];
-    const clusterRows = data.cluster_summary.map((c) => [
-      c.cluster, c.customers.toLocaleString(), `$${c.total_profit.toLocaleString()}`,
-      `$${c.avg_profit.toLocaleString()}`, `$${c.median_profit.toLocaleString()}`,
-      c.avg_receivers, c.avg_ppv,
-    ]);
-    autoTable(doc, {
-      startY: y,
-      head: [clusterHeaders],
-      body: clusterRows,
-      styles: { fontSize: 8, cellPadding: 4 },
-      headStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: "bold" },
-      margin: { left: 40, right: 40 },
-    });
-  }
-
-  doc.save("customer_profitability_report.pdf");
-}
 
 export default function CustomerInsights({ data }) {
   if (!data) return null;
+
+  const cols = DISPLAY_COLS.filter((c) => (data.columns || []).includes(c.key));
+  const miniHeaders = cols.map((c) => c.label);
+  const miniToRows = (rows) => rows.map((r) => cols.map((c) => fmtCell(r[c.key], c.type)));
+
+  const exportMiniExcel = useCallback((rows, filename) => {
+    exportSheetAsExcel(miniToRows(rows), miniHeaders, filename);
+  }, [data]);
+
+  const exportMiniPdf = useCallback((title, rows, filename) => {
+    exportTableAsPdf(title, miniHeaders, miniToRows(rows), filename);
+  }, [data]);
+
+  const bucketHeaders = ["Profit Bucket", "Customers", "Max/Min Profit", "Sum of Profit"];
+  const bucketToRows = (buckets, profitKey) =>
+    (buckets || []).map((r) => [
+      `$${Number(r.profit).toLocaleString()}`, r.count,
+      `$${Number(r[profitKey]).toLocaleString()}`, `$${Number(r.sum_profit).toLocaleString()}`,
+    ]);
+
+  const clusterHeaders = ["Segment", "Customers", "Total Profit", "Avg Profit", "Median Profit", "Avg Receivers", "Avg PPV"];
+  const clusterToRows = () =>
+    (data.cluster_summary || []).map((c) => [
+      c.cluster, c.customers, `$${c.total_profit.toLocaleString()}`,
+      `$${c.avg_profit.toLocaleString()}`, `$${c.median_profit.toLocaleString()}`,
+      c.avg_receivers, c.avg_ppv,
+    ]);
 
   return (
     <section className="insights-section">
       <h2 className="section-heading">Customer Profitability Analysis</h2>
 
       <div className="insights-grid">
-        <MiniTable
-          title="Top 10 Most Profitable Customers"
-          accent="accent-green"
-          rows={data.top10}
-          columns={data.columns}
-        />
-        <MiniTable
-          title="Bottom 10 Least Profitable Customers"
-          accent="accent-red"
-          rows={data.bottom10}
-          columns={data.columns}
-        />
-      </div>
-
-      <ClusterTable clusters={data.cluster_summary} />
-
-      <div className="insights-export">
-        <p className="insights-export-label">Export Report</p>
-        <div className="insights-export-buttons">
-          <button className="export-btn export-btn--excel" onClick={() => downloadExcel(data)}>
-            <span className="export-btn-icon">&#128196;</span>
-            Download Excel
-          </button>
-          <button className="export-btn export-btn--pdf" onClick={() => downloadPDF(data)}>
-            <span className="export-btn-icon">&#128462;</span>
-            Download PDF
-          </button>
+        <div id="section-top10">
+          <MiniTable
+            title="Top 10 Most Profitable Customers"
+            accent="accent-green"
+            rows={data.top10}
+            columns={data.columns}
+            onExportExcel={() => exportMiniExcel(data.top10, "top10_customers.xlsx")}
+            onExportPdf={() => exportMiniPdf("Top 10 Most Profitable Customers", data.top10, "top10_customers.pdf")}
+          />
+        </div>
+        <div id="section-bottom10">
+          <MiniTable
+            title="Bottom 10 Least Profitable Customers"
+            accent="accent-red"
+            rows={data.bottom10}
+            columns={data.columns}
+            onExportExcel={() => exportMiniExcel(data.bottom10, "bottom10_customers.xlsx")}
+            onExportPdf={() => exportMiniPdf("Bottom 10 Least Profitable Customers", data.bottom10, "bottom10_customers.pdf")}
+          />
         </div>
       </div>
+
+      <div className="insights-grid">
+        <div id="section-top-buckets">
+          <BucketTable
+            title="Top 10 Profit Buckets"
+            accent="accent-green"
+            rows={data.top10_buckets}
+            variant="top"
+            onExportExcel={() => exportSheetAsExcel(bucketToRows(data.top10_buckets, "max_profit"), bucketHeaders, "top10_buckets.xlsx")}
+            onExportPdf={() => exportTableAsPdf("Top 10 Profit Buckets", bucketHeaders, bucketToRows(data.top10_buckets, "max_profit"), "top10_buckets.pdf")}
+          />
+        </div>
+        <div id="section-bottom-buckets">
+          <BucketTable
+            title="Bottom 10 Profit Buckets"
+            accent="accent-red"
+            rows={data.bottom10_buckets}
+            variant="bottom"
+            onExportExcel={() => exportSheetAsExcel(bucketToRows(data.bottom10_buckets, "min_profit"), bucketHeaders, "bottom10_buckets.xlsx")}
+            onExportPdf={() => exportTableAsPdf("Bottom 10 Profit Buckets", bucketHeaders, bucketToRows(data.bottom10_buckets, "min_profit"), "bottom10_buckets.pdf")}
+          />
+        </div>
+      </div>
+
+      <ClusterTable
+        clusters={data.cluster_summary}
+        onExportExcel={() => exportSheetAsExcel(clusterToRows(), clusterHeaders, "segment_summary.xlsx")}
+        onExportPdf={() => exportTableAsPdf("Customer Segment Summary", clusterHeaders, clusterToRows(), "segment_summary.pdf")}
+      />
     </section>
   );
 }

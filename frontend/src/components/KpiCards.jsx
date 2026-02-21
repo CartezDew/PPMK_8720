@@ -59,7 +59,7 @@ export default function KpiCards({ data }) {
   const totalProfit = data?.total_profit || 0;
 
   return (
-    <section className="kpi-container">
+    <section id="section-kpi" className="kpi-container">
       <div className="kpi-section">
         <h3 className="kpi-section-title">Customer Overview</h3>
         <div className="kpi-grid">

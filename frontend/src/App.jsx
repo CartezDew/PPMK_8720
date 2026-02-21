@@ -11,6 +11,7 @@ import KpiCards from "./components/KpiCards.jsx";
 import Charts from "./components/Charts.jsx";
 import CustomerInsights from "./components/CustomerInsights.jsx";
 import DataTable from "./components/DataTable.jsx";
+import ClusterBanner from "./components/ClusterBanner.jsx";
 
 const EMPTY_FILTERS = {
   cluster: [],
@@ -41,29 +42,46 @@ export default function App() {
       .catch((e) => setError(e.message));
   }, []);
 
+  const isClusterView = filters.cluster.length === 1;
+
   const loadDashboard = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      fetchSummary(filters),
-      fetchCharts(filters),
-      fetchInsights(filters),
-      fetchTable(filters, {
-        page: tablePage,
-        search: tableSearch,
-        sortBy: tableSort.by,
-        sortDir: tableSort.dir,
-      }),
-    ])
-      .then(([s, c, i, t]) => {
-        setSummary(s);
-        setCharts(c);
-        setInsights(i);
-        setTableData(t);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [filters, tablePage, tableSearch, tableSort]);
+
+    const tablePromise = fetchTable(filters, {
+      page: tablePage,
+      search: tableSearch,
+      sortBy: tableSort.by,
+      sortDir: tableSort.dir,
+    });
+
+    if (isClusterView) {
+      Promise.all([fetchSummary(filters), tablePromise])
+        .then(([s, t]) => {
+          setSummary(s);
+          setTableData(t);
+          setCharts(null);
+          setInsights(null);
+        })
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false));
+    } else {
+      Promise.all([
+        fetchSummary(filters),
+        fetchCharts(filters),
+        fetchInsights(filters),
+        tablePromise,
+      ])
+        .then(([s, c, i, t]) => {
+          setSummary(s);
+          setCharts(c);
+          setInsights(i);
+          setTableData(t);
+        })
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false));
+    }
+  }, [filters, tablePage, tableSearch, tableSort, isClusterView]);
 
   useEffect(() => {
     loadDashboard();
@@ -98,8 +116,16 @@ export default function App() {
     <div className={`app-layout ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
       <header className="app-header">
         <div className="header-brand">
-          <h1>Customer Insights Dashboard</h1>
-          <span className="header-subtitle">Cable & Satellite Service Analytics</span>
+          <h1>
+            {isClusterView
+              ? `Cluster ${filters.cluster[0]} — Customer Insights`
+              : "Customer Insights Dashboard"}
+          </h1>
+          <span className="header-subtitle">
+            {isClusterView
+              ? `Viewing Segment ${filters.cluster[0]} customers`
+              : "Cable & Satellite Service Analytics"}
+          </span>
         </div>
         {loading && <span className="header-loading">Updating...</span>}
       </header>
@@ -118,6 +144,7 @@ export default function App() {
             filters={filters}
             onChange={handleFilterChange}
             onReset={handleReset}
+            onSelectCluster={(id) => handleFilterChange("cluster", [id])}
           />
         )}
       </aside>
@@ -125,22 +152,45 @@ export default function App() {
       <main className="main-content">
         {error && <div className="error-banner">{error}</div>}
 
-        <KpiCards data={summary} />
+        {isClusterView ? (
+          <>
+            <ClusterBanner
+              clusterId={filters.cluster[0]}
+              summaryData={summary}
+              onClose={() => handleFilterChange("cluster", [])}
+            />
 
-        <Charts data={charts} />
+            <DataTable
+              data={tableData}
+              filters={filters}
+              search={tableSearch}
+              sort={tableSort}
+              page={tablePage}
+              onSearchChange={handleSearchChange}
+              onSortChange={handleSortChange}
+              onPageChange={setTablePage}
+            />
+          </>
+        ) : (
+          <>
+            <KpiCards data={summary} />
 
-        <CustomerInsights data={insights} />
+            <Charts data={charts} />
 
-        <DataTable
-          data={tableData}
-          filters={filters}
-          search={tableSearch}
-          sort={tableSort}
-          page={tablePage}
-          onSearchChange={handleSearchChange}
-          onSortChange={handleSortChange}
-          onPageChange={setTablePage}
-        />
+            <CustomerInsights data={insights} />
+
+            <DataTable
+              data={tableData}
+              filters={filters}
+              search={tableSearch}
+              sort={tableSort}
+              page={tablePage}
+              onSearchChange={handleSearchChange}
+              onSortChange={handleSortChange}
+              onPageChange={setTablePage}
+            />
+          </>
+        )}
       </main>
     </div>
   );
