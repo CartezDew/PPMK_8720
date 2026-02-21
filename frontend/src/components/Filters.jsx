@@ -125,7 +125,7 @@ const FILTER_DEFS = [
   { key: "homeowner", label: "Homeownership" },
 ];
 
-export default function Filters({ metadata, filters, onChange, onReset, onSelectCluster, onSelectRanking, onSelectBucket }) {
+export default function Filters({ metadata, filters, onChange, onReset, onSelectCluster, onSelectRanking, onSelectBucket, onLaunchSimulator }) {
   const hasActive = Object.values(filters).some((v) => v.length > 0);
 
   return (
@@ -158,14 +158,17 @@ export default function Filters({ metadata, filters, onChange, onReset, onSelect
           <InsightLink label="Top 10 Customers" icon="top" onClick={() => onSelectRanking?.("top10")} />
           <InsightLink label="Bottom 10 Customers" icon="bottom" onClick={() => onSelectRanking?.("bottom10")} />
 
-          <p className="insights-nav-group-label">Profit Buckets</p>
-          <InsightLink label="Top 10 Profit Buckets" icon="top" onClick={() => onSelectBucket?.("top10")} />
-          <InsightLink label="Bottom 10 Profit Buckets" icon="bottom" onClick={() => onSelectBucket?.("bottom10")} />
+          <p className="insights-nav-group-label">Value Tiers</p>
+          <InsightLink label="Top 10 Highest Value Tiers" icon="top" onClick={() => onSelectBucket?.("top10")} />
+          <InsightLink label="Bottom 10 Lowest Value Tiers" icon="bottom" onClick={() => onSelectBucket?.("bottom10")} />
         </nav>
       </SidebarSection>
 
       <SidebarSection icon="campaign" title="Campaign Simulator" defaultOpen={false}>
-        <p className="sidebar-placeholder">Campaign tools coming soon...</p>
+        <div className="insights-nav">
+          <p className="sidebar-sim-desc">Model ROI, NPV, payback period, and breakeven for marketing campaigns.</p>
+          <InsightLink label="Launch Simulator" icon="top" onClick={() => onLaunchSimulator?.()} />
+        </div>
       </SidebarSection>
 
       <SidebarSection icon="personas" title="Personas" defaultOpen={false}>

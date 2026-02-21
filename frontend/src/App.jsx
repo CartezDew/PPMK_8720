@@ -14,6 +14,7 @@ import DataTable from "./components/DataTable.jsx";
 import ClusterBanner from "./components/ClusterBanner.jsx";
 import RankingBanner from "./components/RankingBanner.jsx";
 import BucketBanner from "./components/BucketBanner.jsx";
+import CampaignSimulator from "./components/CampaignSimulator.jsx";
 
 const EMPTY_FILTERS = {
   cluster: [],
@@ -30,6 +31,7 @@ export default function App() {
   const [clusterViewId, setClusterViewId] = useState(null);
   const [rankingView, setRankingView] = useState(null);
   const [bucketView, setBucketView] = useState(null);
+  const [showSimulator, setShowSimulator] = useState(false);
   const [summary, setSummary] = useState(null);
   const [charts, setCharts] = useState(null);
   const [insights, setInsights] = useState(null);
@@ -50,7 +52,7 @@ export default function App() {
   const isClusterView = clusterViewId !== null;
   const isRankingView = rankingView !== null;
   const isBucketView = bucketView !== null;
-  const isDetailView = isClusterView || isRankingView || isBucketView;
+  const isDetailView = isClusterView || isRankingView || isBucketView || showSimulator;
 
   const effectiveFilters = useMemo(
     () => isClusterView ? { ...filters, cluster: [clusterViewId] } : filters,
@@ -76,7 +78,12 @@ export default function App() {
       bucket: bucketView || "",
     });
 
-    if (cv || rankingView !== null || bucketView !== null) {
+    if (showSimulator) {
+      fetchSummary(ef)
+        .then((s) => { if (!cancelled) { setSummary(s); setCharts(null); setInsights(null); setTableData(null); } })
+        .catch((e) => { if (!cancelled) setError(e.message); })
+        .finally(() => { if (!cancelled) setLoading(false); });
+    } else if (cv || rankingView !== null || bucketView !== null) {
       Promise.all([fetchSummary(ef), tablePromise])
         .then(([s, t]) => {
           if (cancelled) return;
@@ -106,7 +113,7 @@ export default function App() {
     }
 
     return () => { cancelled = true; };
-  }, [filtersKey, clusterViewId, rankingView, bucketView, tablePage, tableSearch, tableSort.by, tableSort.dir]);
+  }, [filtersKey, clusterViewId, rankingView, bucketView, showSimulator, tablePage, tableSearch, tableSort.by, tableSort.dir]);
 
   const handleFilterChange = (key, values) => {
     setFilters((prev) => ({ ...prev, [key]: values }));
@@ -118,6 +125,7 @@ export default function App() {
     setClusterViewId(null);
     setRankingView(null);
     setBucketView(null);
+    setShowSimulator(false);
     setTablePage(1);
     setTableSearch("");
     setTableSort({ by: "Total Profit", dir: "desc" });
@@ -141,16 +149,20 @@ export default function App() {
       <header className="app-header">
         <div className="header-brand">
           <h1>
-            {isClusterView
+            {showSimulator
+              ? "Campaign Simulator"
+              : isClusterView
               ? `Cluster ${clusterViewId} — Customer Insights`
               : isRankingView
               ? (rankingView === "top10" ? "Top 10 Most Profitable Customers" : "Bottom 10 Least Profitable Customers")
               : isBucketView
-              ? (bucketView === "top10" ? "Top 10 Profit Buckets" : "Bottom 10 Profit Buckets")
+              ? (bucketView === "top10" ? "Top 10 Highest Value Tiers" : "Bottom 10 Lowest Value Tiers")
               : "Customer Insights Dashboard"}
           </h1>
           <span className="header-subtitle">
-            {isClusterView
+            {showSimulator
+              ? "Model financial outcomes for marketing campaigns"
+              : isClusterView
               ? `Viewing Segment ${clusterViewId} customers`
               : isRankingView
               ? (rankingView === "top10" ? "Highest value customers by total profit" : "Lowest value customers by total profit")
@@ -176,9 +188,10 @@ export default function App() {
             filters={filters}
             onChange={handleFilterChange}
             onReset={handleReset}
-            onSelectCluster={(id) => { setRankingView(null); setBucketView(null); setClusterViewId(id); }}
-            onSelectRanking={(type) => { setClusterViewId(null); setBucketView(null); setRankingView(type); }}
-            onSelectBucket={(type) => { setClusterViewId(null); setRankingView(null); setBucketView(type); }}
+            onSelectCluster={(id) => { setRankingView(null); setBucketView(null); setShowSimulator(false); setClusterViewId(id); }}
+            onSelectRanking={(type) => { setClusterViewId(null); setBucketView(null); setShowSimulator(false); setRankingView(type); }}
+            onSelectBucket={(type) => { setClusterViewId(null); setRankingView(null); setShowSimulator(false); setBucketView(type); }}
+            onLaunchSimulator={() => { setClusterViewId(null); setRankingView(null); setBucketView(null); setShowSimulator(true); }}
           />
         )}
       </aside>
@@ -186,7 +199,12 @@ export default function App() {
       <main className="main-content">
         {error && <div className="error-banner">{error}</div>}
 
-        {isClusterView ? (
+        {showSimulator ? (
+          <CampaignSimulator
+            summaryData={summary}
+            onClose={() => setShowSimulator(false)}
+          />
+        ) : isClusterView ? (
           <>
             <ClusterBanner
               clusterId={clusterViewId}

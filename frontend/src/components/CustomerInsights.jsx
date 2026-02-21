@@ -619,22 +619,22 @@ export default function CustomerInsights({ data, charts }) {
           <div className="insights-grid">
             <div id="section-top-buckets">
               <BucketTable
-                title="Top 10 Profit Buckets"
+                title="Top 10 Highest Value Tiers"
                 accent="accent-green"
                 rows={data.top10_buckets}
                 variant="top"
                 onExportExcel={() => exportSheetAsExcel(bucketToRows(data.top10_buckets, "max_profit"), bucketHeaders, "top10_buckets.xlsx")}
-                onExportPdf={() => exportTableAsPdf("Top 10 Profit Buckets", bucketHeaders, bucketToRows(data.top10_buckets, "max_profit"), "top10_buckets.pdf")}
+                onExportPdf={() => exportTableAsPdf("Top 10 Highest Value Tiers", bucketHeaders, bucketToRows(data.top10_buckets, "max_profit"), "top10_buckets.pdf")}
               />
             </div>
             <div id="section-bottom-buckets">
               <BucketTable
-                title="Bottom 10 Profit Buckets"
+                title="Bottom 10 Lowest Value Tiers"
                 accent="accent-red"
                 rows={data.bottom10_buckets}
                 variant="bottom"
                 onExportExcel={() => exportSheetAsExcel(bucketToRows(data.bottom10_buckets, "min_profit"), bucketHeaders, "bottom10_buckets.xlsx")}
-                onExportPdf={() => exportTableAsPdf("Bottom 10 Profit Buckets", bucketHeaders, bucketToRows(data.bottom10_buckets, "min_profit"), "bottom10_buckets.pdf")}
+                onExportPdf={() => exportTableAsPdf("Bottom 10 Lowest Value Tiers", bucketHeaders, bucketToRows(data.bottom10_buckets, "min_profit"), "bottom10_buckets.pdf")}
               />
             </div>
           </div>

@@ -247,6 +247,13 @@ body {
   font-size: 0.78rem;
   color: var(--color-text-muted);
   font-style: italic;
+}
+
+.sidebar-sim-desc {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  margin: 0 0 0.5rem;
   padding: 8px 4px;
 }
 
@@ -2326,5 +2333,416 @@ body {
 
   .insights-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Campaign Simulator ===== */
+
+.sim-container {
+  --cluster-color: #0891b2;
+}
+
+.sim-presets {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.sim-presets-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 0.25rem;
+}
+
+.sim-preset-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.55rem 1.1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sim-preset-btn:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.sim-preset-btn.active {
+  border-color: #0891b2;
+  background: #ecfeff;
+}
+
+.sim-preset-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #0f172a;
+}
+
+.sim-preset-btn.active .sim-preset-name {
+  color: #0891b2;
+}
+
+.sim-preset-desc {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.sim-section {
+  margin-top: 1.75rem;
+}
+
+.sim-input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.sim-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sim-input-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sim-input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sim-input-wrap:focus-within {
+  border-color: #0891b2;
+  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+}
+
+.sim-input-affix {
+  padding: 0.6rem 0.65rem;
+  background: #f1f5f9;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sim-input-prefix {
+  border-right: 1px solid #e2e8f0;
+}
+
+.sim-input-suffix {
+  border-left: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+}
+
+.sim-input {
+  border: none;
+  padding: 0.6rem 0.75rem;
+  font-size: 1rem;
+  width: 100%;
+  outline: none;
+  font-weight: 600;
+  color: #0f172a;
+  background: transparent;
+}
+
+.sim-input::-webkit-inner-spin-button,
+.sim-input::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+.sim-input-help {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.sim-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+}
+
+.sim-slider {
+  flex: 1;
+  accent-color: #0891b2;
+  height: 6px;
+  cursor: pointer;
+}
+
+.sim-slider-value {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #0891b2;
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+.sim-overview-row {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.sim-score-gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sim-score-svg {
+  width: 130px;
+  height: 130px;
+}
+
+.sim-score-caption {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.25rem;
+}
+
+.sim-budget-gauge {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sim-gauge-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sim-gauge-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.sim-gauge-amount {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0891b2;
+}
+
+.sim-gauge-of {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.sim-gauge-total {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sim-gauge-track {
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 5px;
+  overflow: hidden;
+  max-width: 400px;
+}
+
+.sim-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0891b2, #06b6d4);
+  border-radius: 5px;
+  transition: width 0.4s ease;
+  min-width: 3px;
+}
+
+.sim-gauge-pct {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.sim-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.sim-result-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 1.1rem;
+  text-align: center;
+  border: 1.5px solid #e2e8f0;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sim-result-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.sim-result-card.positive {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.sim-result-card.negative {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.sim-result-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.sim-result-card.positive .sim-result-value {
+  color: #059669;
+}
+
+.sim-result-card.negative .sim-result-value {
+  color: #dc2626;
+}
+
+.sim-result-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sim-result-hint {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.sim-result-hint.positive {
+  color: #059669;
+}
+
+.sim-result-hint.negative {
+  color: #dc2626;
+}
+
+.sim-chart-wrap {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.sim-chart-svg {
+  width: 100%;
+  height: auto;
+  min-width: 400px;
+}
+
+.sim-toggle-hint {
+  margin-left: auto;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.sim-sensitivity-wrap {
+  margin-top: 1rem;
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.sim-sensitivity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.sim-sensitivity-table th {
+  background: #f1f5f9;
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  font-weight: 700;
+  color: #475569;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sim-sensitivity-table td {
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.sim-sensitivity-baseline {
+  background: #ecfeff !important;
+  font-weight: 700;
+}
+
+.sim-sensitivity-baseline td {
+  border-bottom-color: #cffafe;
+}
+
+.sim-positive {
+  color: #059669 !important;
+  font-weight: 700;
+}
+
+.sim-negative {
+  color: #dc2626 !important;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .sim-overview-row {
+    flex-direction: column;
+    text-align: center;
+  }
+  .sim-input-grid {
+    grid-template-columns: 1fr;
+  }
+  .sim-results-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

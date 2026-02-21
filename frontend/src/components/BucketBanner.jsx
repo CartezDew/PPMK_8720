@@ -4,7 +4,7 @@ import aiIcon from "../images/ai-icon.webp";
 
 const BUCKET_NARRATIVES = {
   top10: {
-    title: "Top 10 Profit Buckets",
+    title: "Top 10 Highest Value Tiers",
     subtitle: "Customers in the 10 highest profit tiers — the revenue backbone",
     highlights: [
       "These profit tiers represent the most valuable customer groups",
@@ -14,7 +14,7 @@ const BUCKET_NARRATIVES = {
     color: "#059669",
   },
   bottom10: {
-    title: "Bottom 10 Profit Buckets",
+    title: "Bottom 10 Lowest Value Tiers",
     subtitle: "Customers in the 10 lowest profit tiers — at-risk or early-lifecycle",
     highlights: [
       "These profit tiers contain customers contributing the least revenue",
