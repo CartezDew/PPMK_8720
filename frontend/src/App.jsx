@@ -177,7 +177,7 @@ export default function App() {
 
             <Charts data={charts} />
 
-            <CustomerInsights data={insights} />
+            <CustomerInsights data={insights} charts={charts} />
 
             <DataTable
               data={tableData}

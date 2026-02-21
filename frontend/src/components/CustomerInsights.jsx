@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import aiIcon from "../images/ai-icon.webp";
 
 function DownloadIcon() {
   return (
@@ -398,10 +399,158 @@ function ClusterTable({ clusters, onExportExcel, onExportPdf }) {
 }
 
 
-export default function CustomerInsights({ data }) {
-  if (!data) return null;
+function fmt$(v) {
+  const n = Number(v);
+  if (Math.abs(n) >= 1_000_000) return "$" + (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (Math.abs(n) >= 10_000) return "$" + (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
 
-  const cols = DISPLAY_COLS.filter((c) => (data.columns || []).includes(c.key));
+function deriveCustomerInsights(data, charts) {
+  if (!data) return { takeaways: [], aiRecs: [] };
+  const takeaways = [];
+  const { top10, bottom10, cluster_summary } = data;
+
+  // Gender analysis from charts
+  if (charts?.profit_by_gender?.length) {
+    const genders = charts.profit_by_gender;
+    const total = genders.reduce((s, g) => s + g.count, 0);
+    const female = genders.find((g) => g.name === "Female");
+    const male = genders.find((g) => g.name === "Male");
+    if (female && male) {
+      const fPct = ((female.count / total) * 100).toFixed(0);
+      takeaways.push(`${fPct}% of customers are Female (${female.count.toLocaleString()}) but Males average ${fmt$(male.avg_profit)} profit vs ${fmt$(female.avg_profit)} — ${((male.avg_profit / female.avg_profit - 1) * 100).toFixed(0)}% more per customer`);
+    }
+  }
+
+  // Age analysis
+  if (charts?.avg_profit_by_age?.length) {
+    const ages = charts.avg_profit_by_age;
+    const totalCust = ages.reduce((s, a) => s + a.count, 0);
+    const biggest = ages.reduce((a, b) => (a.count > b.count ? a : b));
+    const mostProfitable = ages.reduce((a, b) => (a.value > b.value ? a : b));
+    const bigPct = ((biggest.count / totalCust) * 100).toFixed(0);
+    if (biggest.name === mostProfitable.name) {
+      takeaways.push(`${biggest.name} is the largest age group (${bigPct}%, ${biggest.count.toLocaleString()} customers) and most profitable at ${fmt$(biggest.value)} avg`);
+    } else {
+      takeaways.push(`${biggest.name} is the largest age group (${bigPct}%) but ${mostProfitable.name} is most profitable at ${fmt$(mostProfitable.value)} avg`);
+    }
+  }
+
+  // Lifestyle interests
+  if (charts?.lifestyle_data?.length) {
+    const top3 = charts.lifestyle_data.slice(0, 3);
+    const names = top3.map((l) => `${l.name} (${l.pct}%)`);
+    takeaways.push(`Top interests: ${names.join(", ")} — use these for content & ad targeting`);
+  }
+
+  // Education vs profit
+  if (charts?.profit_by_education?.length) {
+    const edu = charts.profit_by_education;
+    const hs = edu.find((e) => e.name === "High School");
+    const college = edu.find((e) => e.name === "Completed College");
+    if (hs && college) {
+      const totalCust = edu.reduce((s, e) => s + e.count, 0);
+      const hsPct = ((hs.count / totalCust) * 100).toFixed(0);
+      takeaways.push(`${hsPct}% have a High School education (${fmt$(hs.avg_profit)} avg) — College grads earn ${fmt$(college.avg_profit)} avg, ${((college.avg_profit / hs.avg_profit - 1) * 100).toFixed(0)}% more`);
+    }
+  }
+
+  // Homeownership
+  if (charts?.profit_by_homeowner?.length) {
+    const ho = charts.profit_by_homeowner;
+    const total = ho.reduce((s, h) => s + h.count, 0);
+    const renters = ho.find((h) => h.name === "Renter");
+    const owners = ho.find((h) => h.name === "Homeowner");
+    if (renters && owners) {
+      const rPct = ((renters.count / total) * 100).toFixed(0);
+      takeaways.push(`${rPct}% are Renters but Homeowners average ${fmt$(owners.avg_profit)} vs ${fmt$(renters.avg_profit)} — ownership signals higher value`);
+    }
+  }
+
+  // Cluster gap
+  if (cluster_summary?.length) {
+    const best = cluster_summary.reduce((a, b) => (a.avg_profit > b.avg_profit ? a : b));
+    const worst = cluster_summary.reduce((a, b) => (a.avg_profit < b.avg_profit ? a : b));
+    const multiplier = (best.avg_profit / worst.avg_profit).toFixed(1);
+    takeaways.push(`${best.cluster} customers average ${fmt$(best.avg_profit)} — ${multiplier}x more than ${worst.cluster} (${fmt$(worst.avg_profit)}) driven by receiver count`);
+  }
+
+  // Revenue composition
+  if (charts?.profit_components?.length) {
+    const comps = charts.profit_components;
+    const total = comps.reduce((s, c) => s + c.value, 0);
+    const top = comps.reduce((a, b) => (a.value > b.value ? a : b));
+    const topPct = ((top.value / total) * 100).toFixed(0);
+    takeaways.push(`${topPct}% of all revenue comes from ${top.name} — PPV, DVR, and HD are underutilized growth channels`);
+  }
+
+  const aiRecs = [
+    "Male customers are fewer but 24% more profitable — develop male-targeted premium bundles and sports/entertainment packages to amplify this advantage",
+    "25–34 age group is the sweet spot — invest in acquisition campaigns targeting young professionals with multi-device household packages",
+    "41% of customers are Computer enthusiasts and 36% are Readers — partner with streaming tech and digital content platforms for bundled offers",
+    "Receiver count is the strongest profit driver — incentivize multi-room setups with discounted additional receivers to move mid-tier customers up",
+  ];
+
+  return { takeaways, aiRecs };
+}
+
+function ProfitabilityInsightsPanel({ data, charts }) {
+  const { takeaways, aiRecs } = useMemo(() => deriveCustomerInsights(data, charts), [data, charts]);
+
+  if (!takeaways.length && !aiRecs.length) return null;
+
+  return (
+    <div className="profitability-insights-panel">
+      {takeaways.length > 0 && (
+        <div className="profitability-takeaways">
+          <div className="profitability-section-header">
+            <svg className="profitability-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2C9.2 2 7 4.2 7 7c0 1.4.6 2.7 1.5 3.6.3.3.5.7.5 1.1V13a1 1 0 001 1h4a1 1 0 001-1v-1.3c0-.4.2-.8.5-1.1C16.4 9.7 17 8.4 17 7c0-2.8-2.2-5-5-5z" />
+              <path d="M12 2c2.8 0 5 2.2 5 5 0 1.4-.6 2.7-1.5 3.6" />
+              <path d="M9.5 7C9.5 5.6 10.6 4.5 12 4.5" />
+              <path d="M12 22v-8" />
+              <path d="M8 18h8" />
+              <path d="M9 21h6" />
+            </svg>
+            <h4 className="profitability-section-title">Key Takeaways</h4>
+          </div>
+          <div className="profitability-callouts">
+            {takeaways.map((text, i) => (
+              <div key={i} className="profitability-callout">
+                <span className="profitability-callout-icon">💡</span>
+                <span>{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {aiRecs.length > 0 && (
+        <div className="profitability-ai-section">
+          <div className="cluster-ai-header">
+            <img src={aiIcon} alt="AI" className="cluster-ai-icon" />
+            <h4 className="cluster-ai-title">AI-Powered Recommendations</h4>
+            <span className="cluster-ai-badge">AI</span>
+          </div>
+          <div className="cluster-ai-recs">
+            {aiRecs.map((text, i) => (
+              <div key={i} className="cluster-ai-rec">
+                <span className="cluster-ai-rec-num">{i + 1}</span>
+                <span>{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function CustomerInsights({ data, charts }) {
+  const [expanded, setExpanded] = useState(true);
+
+  const cols = DISPLAY_COLS.filter((c) => (data?.columns || []).includes(c.key));
   const miniHeaders = cols.map((c) => c.label);
   const miniToRows = (rows) => rows.map((r) => cols.map((c) => fmtCell(r[c.key], c.type)));
 
@@ -412,6 +561,8 @@ export default function CustomerInsights({ data }) {
   const exportMiniPdf = useCallback((title, rows, filename) => {
     exportTableAsPdf(title, miniHeaders, miniToRows(rows), filename);
   }, [data]);
+
+  if (!data) return null;
 
   const bucketHeaders = ["Profit Bucket", "Customers", "Max/Min Profit", "Sum of Profit"];
   const bucketToRows = (buckets, profitKey) =>
@@ -430,59 +581,71 @@ export default function CustomerInsights({ data }) {
 
   return (
     <section className="insights-section">
-      <h2 className="section-heading">Customer Profitability Analysis</h2>
+      <button
+        className="section-heading section-heading--toggle"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <span>Customer Profitability Analysis</span>
+        <span className="section-heading-indicator">{expanded ? "−" : "+"}</span>
+      </button>
 
-      <div className="insights-grid">
-        <div id="section-top10">
-          <MiniTable
-            title="Top 10 Most Profitable Customers"
-            accent="accent-green"
-            rows={data.top10}
-            columns={data.columns}
-            onExportExcel={() => exportMiniExcel(data.top10, "top10_customers.xlsx")}
-            onExportPdf={() => exportMiniPdf("Top 10 Most Profitable Customers", data.top10, "top10_customers.pdf")}
-          />
-        </div>
-        <div id="section-bottom10">
-          <MiniTable
-            title="Bottom 10 Least Profitable Customers"
-            accent="accent-red"
-            rows={data.bottom10}
-            columns={data.columns}
-            onExportExcel={() => exportMiniExcel(data.bottom10, "bottom10_customers.xlsx")}
-            onExportPdf={() => exportMiniPdf("Bottom 10 Least Profitable Customers", data.bottom10, "bottom10_customers.pdf")}
-          />
-        </div>
-      </div>
+      {expanded && (
+        <>
+          <ProfitabilityInsightsPanel data={data} charts={charts} />
 
-      <div className="insights-grid">
-        <div id="section-top-buckets">
-          <BucketTable
-            title="Top 10 Profit Buckets"
-            accent="accent-green"
-            rows={data.top10_buckets}
-            variant="top"
-            onExportExcel={() => exportSheetAsExcel(bucketToRows(data.top10_buckets, "max_profit"), bucketHeaders, "top10_buckets.xlsx")}
-            onExportPdf={() => exportTableAsPdf("Top 10 Profit Buckets", bucketHeaders, bucketToRows(data.top10_buckets, "max_profit"), "top10_buckets.pdf")}
-          />
-        </div>
-        <div id="section-bottom-buckets">
-          <BucketTable
-            title="Bottom 10 Profit Buckets"
-            accent="accent-red"
-            rows={data.bottom10_buckets}
-            variant="bottom"
-            onExportExcel={() => exportSheetAsExcel(bucketToRows(data.bottom10_buckets, "min_profit"), bucketHeaders, "bottom10_buckets.xlsx")}
-            onExportPdf={() => exportTableAsPdf("Bottom 10 Profit Buckets", bucketHeaders, bucketToRows(data.bottom10_buckets, "min_profit"), "bottom10_buckets.pdf")}
-          />
-        </div>
-      </div>
+          <div className="insights-grid">
+            <div id="section-top10">
+              <MiniTable
+                title="Top 10 Most Profitable Customers"
+                accent="accent-green"
+                rows={data.top10}
+                columns={data.columns}
+                onExportExcel={() => exportMiniExcel(data.top10, "top10_customers.xlsx")}
+                onExportPdf={() => exportMiniPdf("Top 10 Most Profitable Customers", data.top10, "top10_customers.pdf")}
+              />
+            </div>
+            <div id="section-bottom10">
+              <MiniTable
+                title="Bottom 10 Least Profitable Customers"
+                accent="accent-red"
+                rows={data.bottom10}
+                columns={data.columns}
+                onExportExcel={() => exportMiniExcel(data.bottom10, "bottom10_customers.xlsx")}
+                onExportPdf={() => exportMiniPdf("Bottom 10 Least Profitable Customers", data.bottom10, "bottom10_customers.pdf")}
+              />
+            </div>
+          </div>
 
-      <ClusterTable
-        clusters={data.cluster_summary}
-        onExportExcel={() => exportSheetAsExcel(clusterToRows(), clusterHeaders, "segment_summary.xlsx")}
-        onExportPdf={() => exportTableAsPdf("Customer Segment Summary", clusterHeaders, clusterToRows(), "segment_summary.pdf")}
-      />
+          <div className="insights-grid">
+            <div id="section-top-buckets">
+              <BucketTable
+                title="Top 10 Profit Buckets"
+                accent="accent-green"
+                rows={data.top10_buckets}
+                variant="top"
+                onExportExcel={() => exportSheetAsExcel(bucketToRows(data.top10_buckets, "max_profit"), bucketHeaders, "top10_buckets.xlsx")}
+                onExportPdf={() => exportTableAsPdf("Top 10 Profit Buckets", bucketHeaders, bucketToRows(data.top10_buckets, "max_profit"), "top10_buckets.pdf")}
+              />
+            </div>
+            <div id="section-bottom-buckets">
+              <BucketTable
+                title="Bottom 10 Profit Buckets"
+                accent="accent-red"
+                rows={data.bottom10_buckets}
+                variant="bottom"
+                onExportExcel={() => exportSheetAsExcel(bucketToRows(data.bottom10_buckets, "min_profit"), bucketHeaders, "bottom10_buckets.xlsx")}
+                onExportPdf={() => exportTableAsPdf("Bottom 10 Profit Buckets", bucketHeaders, bucketToRows(data.bottom10_buckets, "min_profit"), "bottom10_buckets.pdf")}
+              />
+            </div>
+          </div>
+
+          <ClusterTable
+            clusters={data.cluster_summary}
+            onExportExcel={() => exportSheetAsExcel(clusterToRows(), clusterHeaders, "segment_summary.xlsx")}
+            onExportPdf={() => exportTableAsPdf("Customer Segment Summary", clusterHeaders, clusterToRows(), "segment_summary.pdf")}
+          />
+        </>
+      )}
     </section>
   );
 }

@@ -15,10 +15,10 @@ const CLUSTER_NARRATIVES = {
   },
   "2": {
     title: "Cluster 2 — Profit Driver",
-    subtitle: "Top profit driver with steady, consistent buyers",
+    subtitle: "Top profit driver with steady, consistent customers",
     highlights: [
       "Large share of customers (32%)",
-      "Produces the most total profit — steady, consistent buyers (32%)",
+      "Produces the most total profit — steady, consistent customers (32%)",
       "Not the highest spend per customer ($330 avg spend)",
     ],
     color: "#4f46e5",
@@ -360,6 +360,49 @@ function UpscaleCard({ data, color }) {
   );
 }
 
+function ResidentialCard({ data, color }) {
+  if (!data?.length) return null;
+  const residential = data.find((r) => String(r.name) === "0");
+  const business = data.find((r) => String(r.name) === "1");
+  if (!residential) return null;
+
+  const total = data.reduce((s, d) => s + d.count, 0);
+  const resPct = ((residential.count / total) * 100).toFixed(1);
+  const bizPct = business ? ((business.count / total) * 100).toFixed(1) : "0";
+
+  return (
+    <div className="cluster-residential-card">
+      <h5 className="cluster-demo-title">Customer Type</h5>
+      <div className="cluster-residential-grid">
+        <div className="cluster-residential-item cluster-residential-main">
+          <svg className="cluster-residential-icon" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 10.5L12 3l9 7.5" />
+            <path d="M5 9.5V19a1 1 0 001 1h12a1 1 0 001-1V9.5" />
+            <path d="M10 20v-6h4v6" />
+          </svg>
+          <span className="cluster-residential-pct" style={{ color }}>{resPct}%</span>
+          <span className="cluster-residential-label">Residential</span>
+          <span className="cluster-residential-count">{residential.count.toLocaleString()}</span>
+        </div>
+        {business && (
+          <div className="cluster-residential-item">
+            <svg className="cluster-residential-icon" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="7" width="18" height="13" rx="1" />
+              <path d="M3 11h18" />
+              <path d="M7 7V5a2 2 0 012-2h6a2 2 0 012 2v2" />
+              <path d="M7 15h2" />
+              <path d="M15 15h2" />
+            </svg>
+            <span className="cluster-residential-pct">{bizPct}%</span>
+            <span className="cluster-residential-label">Business</span>
+            <span className="cluster-residential-count">{business.count.toLocaleString()}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const AI_RECOMMENDATIONS = {
   "1": [
     "Target with value-oriented bundles — this segment is price-sensitive",
@@ -376,8 +419,8 @@ const AI_RECOMMENDATIONS = {
   "3": [
     "Invest in premium bundles — highest value per customer",
     "Prioritize retention campaigns — small base, high impact if lost",
-    "Target with exclusive content and early-access offers",
-    "Leverage upscale cardholders — target their spending behavior with exclusive loyalty perks",
+    "Predominantly male power users — likely sports and premium content viewers based on high DVR, PPV, and HD adoption",
+    "Target with exclusive sports packages, PPV events, and premium HD programming to maximize spend",
   ],
 };
 
@@ -473,7 +516,15 @@ export default function ClusterBanner({ clusterId, summaryData, onClose }) {
           {/* Revenue breakdown */}
           {summaryData && (
             <div className="cluster-revenue-strip">
-              <h4 className="cluster-section-label">Revenue by Service</h4>
+              <div className="cluster-section-header">
+                <svg className="cluster-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="M2 10h20" />
+                  <path d="M6 14h2" />
+                  <path d="M12 14h6" />
+                </svg>
+                <h4 className="cluster-section-label">Revenue by Service</h4>
+              </div>
               <div className="cluster-revenue-bars">
                 {sortedRevenue.map((r) => {
                   const pct = totalProfit > 0 ? ((r.value / totalProfit) * 100).toFixed(1) : 0;
@@ -497,7 +548,17 @@ export default function ClusterBanner({ clusterId, summaryData, onClose }) {
           {/* Key insights callouts */}
           {insights.length > 0 && (
             <div className="cluster-insights-section">
-              <h4 className="cluster-section-label">Key Takeaways</h4>
+              <div className="cluster-section-header">
+                <svg className="cluster-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2C9.2 2 7 4.2 7 7c0 1.4.6 2.7 1.5 3.6.3.3.5.7.5 1.1V13a1 1 0 001 1h4a1 1 0 001-1v-1.3c0-.4.2-.8.5-1.1C16.4 9.7 17 8.4 17 7c0-2.8-2.2-5-5-5z" />
+                  <path d="M12 2c2.8 0 5 2.2 5 5 0 1.4-.6 2.7-1.5 3.6" />
+                  <path d="M9.5 7C9.5 5.6 10.6 4.5 12 4.5" />
+                  <path d="M12 22v-8" />
+                  <path d="M8 18h8" />
+                  <path d="M9 21h6" />
+                </svg>
+                <h4 className="cluster-section-label">Key Takeaways</h4>
+              </div>
               <div className="cluster-callouts">
                 {insights.map((text, i) => (
                   <div key={i} className="cluster-callout">
@@ -529,13 +590,22 @@ export default function ClusterBanner({ clusterId, summaryData, onClose }) {
           )}
 
           {/* Customer Profile Charts */}
-          <h4 className="cluster-section-label">Customer Profile</h4>
+          <div className="cluster-section-header">
+            <svg className="cluster-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87" />
+              <path d="M16 3.13a4 4 0 010 7.75" />
+            </svg>
+            <h4 className="cluster-section-label">Customer Profile</h4>
+          </div>
           <div className="cluster-profile-charts">
             <DonutChart data={profile.gender} title="Gender" color={narrative.color} />
             <DonutChart data={profile.marital} title="Marital Status" color={narrative.color} />
             <CompareBar data={profile.homeowner_status} title="Homeownership" color={narrative.color} />
-            <ServiceAdoption data={profile.service_adoption} color={narrative.color} />
+            <ResidentialCard data={profile.home_business} color={narrative.color} />
             <UpscaleCard data={profile.lifestyle?.upscale} color={narrative.color} />
+            <ServiceAdoption data={profile.service_adoption} color={narrative.color} />
           </div>
 
           {profile.avg_mortgage > 0 && (
@@ -552,7 +622,13 @@ export default function ClusterBanner({ clusterId, summaryData, onClose }) {
           )}
 
           {/* Demographics */}
-          <h4 className="cluster-section-label">Demographics</h4>
+          <div className="cluster-section-header">
+            <svg className="cluster-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3v18h18" />
+              <path d="M7 17l4-8 4 4 5-9" />
+            </svg>
+            <h4 className="cluster-section-label">Demographics</h4>
+          </div>
           <div className="cluster-demo-grid">
             <DemoTable title="Dwelling Type" rows={profile.dwelling} showIncome />
             <DemoTable title="Education" rows={profile.education} showIncome />
