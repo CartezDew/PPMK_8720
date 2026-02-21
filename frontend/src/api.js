@@ -48,7 +48,7 @@ export async function fetchInsights(filters = {}) {
   return fetchJSON(`/api/insights/${qs ? "?" + qs : ""}`);
 }
 
-export async function fetchTable(filters = {}, { page = 1, pageSize = 50, search = "", sortBy = "Total Profit", sortDir = "desc" } = {}) {
+export async function fetchTable(filters = {}, { page = 1, pageSize = 50, search = "", sortBy = "Total Profit", sortDir = "desc", ranking = "" } = {}) {
   const qs = buildQuery(filters);
   const extra = new URLSearchParams({
     page: String(page),
@@ -57,6 +57,7 @@ export async function fetchTable(filters = {}, { page = 1, pageSize = 50, search
     sort_dir: sortDir,
   });
   if (search) extra.set("search", search);
+  if (ranking) extra.set("ranking", ranking);
   const sep = qs ? `${qs}&${extra}` : extra.toString();
   return fetchJSON(`/api/table/?${sep}`);
 }
@@ -64,6 +65,11 @@ export async function fetchTable(filters = {}, { page = 1, pageSize = 50, search
 export async function fetchClusterProfile(clusterId, filters = {}) {
   const qs = buildQuery(filters);
   return fetchJSON(`/api/cluster-profile/${clusterId}/${qs ? "?" + qs : ""}`);
+}
+
+export async function fetchRankingProfile(rankingType, filters = {}) {
+  const qs = buildQuery(filters);
+  return fetchJSON(`/api/ranking-profile/${rankingType}/${qs ? "?" + qs : ""}`);
 }
 
 export async function fetchAllRecords(filters = {}, { search = "", sortBy = "Total Profit", sortDir = "desc" } = {}) {

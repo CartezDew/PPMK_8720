@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { fetchAllRecords } from "../api.js";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -29,6 +29,10 @@ const COL_LABELS = {
 };
 
 const CURRENCY_COLS = new Set(["DVR Service Profit", "HD Service Profit", "Total Profit"]);
+const SUMMABLE_COLS = new Set([
+  "Total Profit", "# of Receivers", "# of PPV Orders (last 12 Months)",
+  "DVR Service Profit", "HD Service Profit",
+]);
 
 function fmtForExport(val, col) {
   if (val == null) return "";
@@ -46,12 +50,27 @@ export default function DataTable({
   onSearchChange,
   onSortChange,
   onPageChange,
+  showTotals = false,
 }) {
   const [exporting, setExporting] = useState(false);
 
+  const columns = data?.columns;
+  const rows = data?.rows;
+
+  const totalsRow = useMemo(() => {
+    if (!showTotals || !rows?.length || !columns) return null;
+    const sums = {};
+    columns.forEach((col) => {
+      if (SUMMABLE_COLS.has(col)) {
+        sums[col] = rows.reduce((s, row) => s + (Number(row[col]) || 0), 0);
+      }
+    });
+    return sums;
+  }, [showTotals, rows, columns]);
+
   if (!data) return null;
 
-  const { columns, rows, total_count, total_pages } = data;
+  const { total_count, total_pages } = data;
 
   async function handleExportExcel() {
     setExporting(true);
@@ -197,6 +216,28 @@ export default function DataTable({
               </tr>
             )}
           </tbody>
+          {totalsRow && (
+            <tfoot>
+              <tr className="summary-row">
+                {columns.map((col, ci) => {
+                  if (SUMMABLE_COLS.has(col)) {
+                    const val = totalsRow[col];
+                    return (
+                      <td key={col}>
+                        {CURRENCY_COLS.has(col)
+                          ? "$" + val.toLocaleString("en-US")
+                          : val.toLocaleString("en-US")}
+                      </td>
+                    );
+                  }
+                  if (ci === 0) {
+                    return <td key={col} className="summary-label">Grand Total</td>;
+                  }
+                  return <td key={col}></td>;
+                })}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 

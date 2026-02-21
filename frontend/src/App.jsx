@@ -12,6 +12,7 @@ import Charts from "./components/Charts.jsx";
 import CustomerInsights from "./components/CustomerInsights.jsx";
 import DataTable from "./components/DataTable.jsx";
 import ClusterBanner from "./components/ClusterBanner.jsx";
+import RankingBanner from "./components/RankingBanner.jsx";
 
 const EMPTY_FILTERS = {
   cluster: [],
@@ -26,6 +27,7 @@ export default function App() {
   const [metadata, setMetadata] = useState(null);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [clusterViewId, setClusterViewId] = useState(null);
+  const [rankingView, setRankingView] = useState(null);
   const [summary, setSummary] = useState(null);
   const [charts, setCharts] = useState(null);
   const [insights, setInsights] = useState(null);
@@ -44,6 +46,8 @@ export default function App() {
   }, []);
 
   const isClusterView = clusterViewId !== null;
+  const isRankingView = rankingView !== null;
+  const isDetailView = isClusterView || isRankingView;
 
   const effectiveFilters = useMemo(
     () => isClusterView ? { ...filters, cluster: [clusterViewId] } : filters,
@@ -65,9 +69,10 @@ export default function App() {
       search: tableSearch,
       sortBy: tableSort.by,
       sortDir: tableSort.dir,
+      ranking: rankingView || "",
     });
 
-    if (cv) {
+    if (cv || rankingView !== null) {
       Promise.all([fetchSummary(ef), tablePromise])
         .then(([s, t]) => {
           if (cancelled) return;
@@ -97,7 +102,7 @@ export default function App() {
     }
 
     return () => { cancelled = true; };
-  }, [filtersKey, clusterViewId, tablePage, tableSearch, tableSort.by, tableSort.dir]);
+  }, [filtersKey, clusterViewId, rankingView, tablePage, tableSearch, tableSort.by, tableSort.dir]);
 
   const handleFilterChange = (key, values) => {
     setFilters((prev) => ({ ...prev, [key]: values }));
@@ -107,6 +112,7 @@ export default function App() {
   const handleReset = () => {
     setFilters(EMPTY_FILTERS);
     setClusterViewId(null);
+    setRankingView(null);
     setTablePage(1);
     setTableSearch("");
     setTableSort({ by: "Total Profit", dir: "desc" });
@@ -132,11 +138,15 @@ export default function App() {
           <h1>
             {isClusterView
               ? `Cluster ${clusterViewId} — Customer Insights`
+              : isRankingView
+              ? (rankingView === "top10" ? "Top 10 Most Profitable Customers" : "Bottom 10 Least Profitable Customers")
               : "Customer Insights Dashboard"}
           </h1>
           <span className="header-subtitle">
             {isClusterView
               ? `Viewing Segment ${clusterViewId} customers`
+              : isRankingView
+              ? (rankingView === "top10" ? "Highest value customers by total profit" : "Lowest value customers by total profit")
               : "Cable & Satellite Service Analytics"}
           </span>
         </div>
@@ -157,7 +167,8 @@ export default function App() {
             filters={filters}
             onChange={handleFilterChange}
             onReset={handleReset}
-            onSelectCluster={(id) => setClusterViewId(id)}
+            onSelectCluster={(id) => { setRankingView(null); setClusterViewId(id); }}
+            onSelectRanking={(type) => { setClusterViewId(null); setRankingView(type); }}
           />
         )}
       </aside>
@@ -183,6 +194,27 @@ export default function App() {
               onSearchChange={handleSearchChange}
               onSortChange={handleSortChange}
               onPageChange={setTablePage}
+            />
+          </>
+        ) : isRankingView ? (
+          <>
+            <RankingBanner
+              rankingType={rankingView}
+              filters={filters}
+              summaryData={summary}
+              onClose={() => setRankingView(null)}
+            />
+
+            <DataTable
+              data={tableData}
+              filters={filters}
+              search={tableSearch}
+              sort={tableSort}
+              page={tablePage}
+              onSearchChange={handleSearchChange}
+              onSortChange={handleSortChange}
+              onPageChange={setTablePage}
+              showTotals
             />
           </>
         ) : (
