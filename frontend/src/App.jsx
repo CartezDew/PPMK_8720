@@ -13,6 +13,7 @@ import CustomerInsights from "./components/CustomerInsights.jsx";
 import DataTable from "./components/DataTable.jsx";
 import ClusterBanner from "./components/ClusterBanner.jsx";
 import RankingBanner from "./components/RankingBanner.jsx";
+import BucketBanner from "./components/BucketBanner.jsx";
 
 const EMPTY_FILTERS = {
   cluster: [],
@@ -28,6 +29,7 @@ export default function App() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [clusterViewId, setClusterViewId] = useState(null);
   const [rankingView, setRankingView] = useState(null);
+  const [bucketView, setBucketView] = useState(null);
   const [summary, setSummary] = useState(null);
   const [charts, setCharts] = useState(null);
   const [insights, setInsights] = useState(null);
@@ -47,7 +49,8 @@ export default function App() {
 
   const isClusterView = clusterViewId !== null;
   const isRankingView = rankingView !== null;
-  const isDetailView = isClusterView || isRankingView;
+  const isBucketView = bucketView !== null;
+  const isDetailView = isClusterView || isRankingView || isBucketView;
 
   const effectiveFilters = useMemo(
     () => isClusterView ? { ...filters, cluster: [clusterViewId] } : filters,
@@ -70,9 +73,10 @@ export default function App() {
       sortBy: tableSort.by,
       sortDir: tableSort.dir,
       ranking: rankingView || "",
+      bucket: bucketView || "",
     });
 
-    if (cv || rankingView !== null) {
+    if (cv || rankingView !== null || bucketView !== null) {
       Promise.all([fetchSummary(ef), tablePromise])
         .then(([s, t]) => {
           if (cancelled) return;
@@ -102,7 +106,7 @@ export default function App() {
     }
 
     return () => { cancelled = true; };
-  }, [filtersKey, clusterViewId, rankingView, tablePage, tableSearch, tableSort.by, tableSort.dir]);
+  }, [filtersKey, clusterViewId, rankingView, bucketView, tablePage, tableSearch, tableSort.by, tableSort.dir]);
 
   const handleFilterChange = (key, values) => {
     setFilters((prev) => ({ ...prev, [key]: values }));
@@ -113,6 +117,7 @@ export default function App() {
     setFilters(EMPTY_FILTERS);
     setClusterViewId(null);
     setRankingView(null);
+    setBucketView(null);
     setTablePage(1);
     setTableSearch("");
     setTableSort({ by: "Total Profit", dir: "desc" });
@@ -140,6 +145,8 @@ export default function App() {
               ? `Cluster ${clusterViewId} — Customer Insights`
               : isRankingView
               ? (rankingView === "top10" ? "Top 10 Most Profitable Customers" : "Bottom 10 Least Profitable Customers")
+              : isBucketView
+              ? (bucketView === "top10" ? "Top 10 Profit Buckets" : "Bottom 10 Profit Buckets")
               : "Customer Insights Dashboard"}
           </h1>
           <span className="header-subtitle">
@@ -147,6 +154,8 @@ export default function App() {
               ? `Viewing Segment ${clusterViewId} customers`
               : isRankingView
               ? (rankingView === "top10" ? "Highest value customers by total profit" : "Lowest value customers by total profit")
+              : isBucketView
+              ? (bucketView === "top10" ? "Customers in the 10 highest profit tiers" : "Customers in the 10 lowest profit tiers")
               : "Cable & Satellite Service Analytics"}
           </span>
         </div>
@@ -167,8 +176,9 @@ export default function App() {
             filters={filters}
             onChange={handleFilterChange}
             onReset={handleReset}
-            onSelectCluster={(id) => { setRankingView(null); setClusterViewId(id); }}
-            onSelectRanking={(type) => { setClusterViewId(null); setRankingView(type); }}
+            onSelectCluster={(id) => { setRankingView(null); setBucketView(null); setClusterViewId(id); }}
+            onSelectRanking={(type) => { setClusterViewId(null); setBucketView(null); setRankingView(type); }}
+            onSelectBucket={(type) => { setClusterViewId(null); setRankingView(null); setBucketView(type); }}
           />
         )}
       </aside>
@@ -203,6 +213,27 @@ export default function App() {
               filters={filters}
               summaryData={summary}
               onClose={() => setRankingView(null)}
+            />
+
+            <DataTable
+              data={tableData}
+              filters={filters}
+              search={tableSearch}
+              sort={tableSort}
+              page={tablePage}
+              onSearchChange={handleSearchChange}
+              onSortChange={handleSortChange}
+              onPageChange={setTablePage}
+              showTotals
+            />
+          </>
+        ) : isBucketView ? (
+          <>
+            <BucketBanner
+              bucketType={bucketView}
+              filters={filters}
+              summaryData={summary}
+              onClose={() => setBucketView(null)}
             />
 
             <DataTable

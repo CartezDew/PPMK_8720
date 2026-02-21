@@ -125,7 +125,7 @@ const FILTER_DEFS = [
   { key: "homeowner", label: "Homeownership" },
 ];
 
-export default function Filters({ metadata, filters, onChange, onReset, onSelectCluster, onSelectRanking }) {
+export default function Filters({ metadata, filters, onChange, onReset, onSelectCluster, onSelectRanking, onSelectBucket }) {
   const hasActive = Object.values(filters).some((v) => v.length > 0);
 
   return (
@@ -159,8 +159,8 @@ export default function Filters({ metadata, filters, onChange, onReset, onSelect
           <InsightLink label="Bottom 10 Customers" icon="bottom" onClick={() => onSelectRanking?.("bottom10")} />
 
           <p className="insights-nav-group-label">Profit Buckets</p>
-          <InsightLink label="Top 10 Profit Buckets" targetId="section-top-buckets" icon="top" />
-          <InsightLink label="Bottom 10 Profit Buckets" targetId="section-bottom-buckets" icon="bottom" />
+          <InsightLink label="Top 10 Profit Buckets" icon="top" onClick={() => onSelectBucket?.("top10")} />
+          <InsightLink label="Bottom 10 Profit Buckets" icon="bottom" onClick={() => onSelectBucket?.("bottom10")} />
         </nav>
       </SidebarSection>
 
