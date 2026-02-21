@@ -1,5 +1,5 @@
 /* ===================================================================
-   Analytics Dashboard – single stylesheet
+   Customer Insights Dashboard – Cable/Satellite Analytics
    =================================================================== */
 
 /* ---- Reset & base ---- */
@@ -14,18 +14,20 @@
 :root {
   --color-bg: #f1f5f9;
   --color-surface: #ffffff;
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
+  --color-primary: #1e3a5f;
+  --color-primary-light: #2d5a8e;
+  --color-accent: #0891b2;
   --color-text: #1e293b;
   --color-text-muted: #64748b;
   --color-border: #e2e8f0;
   --color-danger: #ef4444;
+  --color-success: #059669;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07),
     0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --radius: 10px;
   --sidebar-width: 260px;
-  --header-height: 56px;
+  --header-height: 64px;
   --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
@@ -58,8 +60,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  background: var(--color-primary);
+  padding: 0 28px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
   color: #fff;
   position: sticky;
   top: 0;
@@ -67,10 +69,24 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+.header-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 .app-header h1 {
   font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.header-subtitle {
+  font-size: 0.72rem;
+  opacity: 0.7;
+  font-weight: 400;
+  letter-spacing: 0.02em;
 }
 
 .header-loading {
@@ -110,7 +126,7 @@ body {
 }
 
 .filters-header h2 {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -207,7 +223,7 @@ body {
 }
 
 .filter-option input[type="checkbox"] {
-  accent-color: var(--color-primary);
+  accent-color: var(--color-accent);
   width: 14px;
   height: 14px;
 }
@@ -219,7 +235,17 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
+}
+
+/* ---- Section headings ---- */
+.section-heading {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--color-accent);
+  margin-bottom: 4px;
 }
 
 /* ---- Error banner ---- */
@@ -234,30 +260,46 @@ body {
 }
 
 /* ---- KPI cards ---- */
+.kpi-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.kpi-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
 }
 
 .kpi-card {
   background: var(--color-surface);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 18px 20px;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: 6px;
   border: 1px solid var(--color-border);
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.15s;
 }
 
 .kpi-card:hover {
   box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .kpi-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -265,17 +307,23 @@ body {
 }
 
 .kpi-value {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--color-text);
   letter-spacing: -0.02em;
 }
 
 /* ---- Charts ---- */
+.charts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-  gap: 20px;
+  gap: 18px;
 }
 
 .chart-card {
@@ -289,8 +337,15 @@ body {
 .chart-title {
   font-size: 0.9rem;
   font-weight: 700;
-  margin-bottom: 16px;
   color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.chart-subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 14px;
+  font-style: italic;
 }
 
 .chart-tooltip {
@@ -311,6 +366,66 @@ body {
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--color-text);
+}
+
+/* ---- Customer Insights ---- */
+.insights-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.insight-table-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.insight-table-card.accent-green {
+  border-top: 3px solid var(--color-success);
+}
+
+.insight-table-card.accent-red {
+  border-top: 3px solid var(--color-danger);
+}
+
+.insight-table-card.accent-blue {
+  border-top: 3px solid var(--color-accent);
+}
+
+.insight-table-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 14px 18px 4px;
+  color: var(--color-text);
+}
+
+.insight-table-desc {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding: 0 18px 10px;
+  font-style: italic;
+}
+
+.insight-table {
+  font-size: 0.76rem;
+}
+
+.insight-table th {
+  font-size: 0.68rem;
+  padding: 8px 10px;
+}
+
+.insight-table td {
+  padding: 7px 10px;
 }
 
 /* ---- Data table ---- */
@@ -351,8 +466,8 @@ body {
 }
 
 .table-search:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.12);
 }
 
 .table-count {
@@ -392,11 +507,11 @@ body {
 }
 
 .data-table th.sortable:hover {
-  color: var(--color-primary);
+  color: var(--color-accent);
 }
 
 .sort-arrow {
-  color: var(--color-primary);
+  color: var(--color-accent);
   font-weight: 700;
 }
 
@@ -434,14 +549,14 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  color: var(--color-primary);
+  color: var(--color-accent);
   transition: background 0.15s, border-color 0.15s;
   font-family: var(--font);
 }
 
 .pagination button:hover:not(:disabled) {
-  background: #eef2ff;
-  border-color: var(--color-primary);
+  background: #ecfeff;
+  border-color: var(--color-accent);
 }
 
 .pagination button:disabled {
@@ -456,6 +571,12 @@ body {
 }
 
 /* ---- Responsive ---- */
+@media (max-width: 1100px) {
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .app-layout {
     grid-template-columns: 1fr;
@@ -479,5 +600,9 @@ body {
 
   .kpi-grid {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .insights-grid {
+    grid-template-columns: 1fr;
   }
 }

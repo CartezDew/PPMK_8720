@@ -43,6 +43,11 @@ export async function fetchCharts(filters = {}) {
   return fetchJSON(`/api/charts/${qs ? "?" + qs : ""}`);
 }
 
+export async function fetchInsights(filters = {}) {
+  const qs = buildQuery(filters);
+  return fetchJSON(`/api/insights/${qs ? "?" + qs : ""}`);
+}
+
 export async function fetchTable(filters = {}, { page = 1, pageSize = 50, search = "", sortBy = "Total Profit", sortDir = "desc" } = {}) {
   const qs = buildQuery(filters);
   const extra = new URLSearchParams({

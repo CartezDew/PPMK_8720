@@ -21,7 +21,7 @@ function MultiSelect({ label, options, selected, onChange }) {
         <span className="filter-badge">
           {selected.length ? selected.length : "All"}
         </span>
-        <span className={`filter-arrow ${open ? "open" : ""}`}>▾</span>
+        <span className={`filter-arrow ${open ? "open" : ""}`}>&#x25BE;</span>
       </button>
 
       {open && (
@@ -43,12 +43,12 @@ function MultiSelect({ label, options, selected, onChange }) {
 }
 
 const FILTER_DEFS = [
-  { key: "cluster", label: "Cluster" },
+  { key: "cluster", label: "Customer Segment" },
   { key: "age_group", label: "Age Group" },
   { key: "dwelling", label: "Dwelling Type" },
-  { key: "education", label: "Education" },
+  { key: "education", label: "Education Level" },
   { key: "gender", label: "Gender" },
-  { key: "homeowner", label: "Homeowner" },
+  { key: "homeowner", label: "Homeownership" },
 ];
 
 export default function Filters({ metadata, filters, onChange, onReset }) {
@@ -57,7 +57,7 @@ export default function Filters({ metadata, filters, onChange, onReset }) {
   return (
     <div className="filters-panel">
       <div className="filters-header">
-        <h2>Filters</h2>
+        <h2>Segment Filters</h2>
         {hasActive && (
           <button className="reset-btn" type="button" onClick={onReset}>
             Reset All

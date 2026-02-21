@@ -3,11 +3,13 @@ import {
   fetchMetadata,
   fetchSummary,
   fetchCharts,
+  fetchInsights,
   fetchTable,
 } from "./api.js";
 import Filters from "./components/Filters.jsx";
 import KpiCards from "./components/KpiCards.jsx";
 import Charts from "./components/Charts.jsx";
+import CustomerInsights from "./components/CustomerInsights.jsx";
 import DataTable from "./components/DataTable.jsx";
 
 const EMPTY_FILTERS = {
@@ -24,6 +26,7 @@ export default function App() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [summary, setSummary] = useState(null);
   const [charts, setCharts] = useState(null);
+  const [insights, setInsights] = useState(null);
   const [tableData, setTableData] = useState(null);
   const [tablePage, setTablePage] = useState(1);
   const [tableSearch, setTableSearch] = useState("");
@@ -43,6 +46,7 @@ export default function App() {
     Promise.all([
       fetchSummary(filters),
       fetchCharts(filters),
+      fetchInsights(filters),
       fetchTable(filters, {
         page: tablePage,
         search: tableSearch,
@@ -50,9 +54,10 @@ export default function App() {
         sortDir: tableSort.dir,
       }),
     ])
-      .then(([s, c, t]) => {
+      .then(([s, c, i, t]) => {
         setSummary(s);
         setCharts(c);
+        setInsights(i);
         setTableData(t);
       })
       .catch((e) => setError(e.message))
@@ -91,8 +96,11 @@ export default function App() {
   return (
     <div className="app-layout">
       <header className="app-header">
-        <h1>Analytics Dashboard</h1>
-        {loading && <span className="header-loading">Updating…</span>}
+        <div className="header-brand">
+          <h1>Customer Insights Dashboard</h1>
+          <span className="header-subtitle">Cable & Satellite Service Analytics</span>
+        </div>
+        {loading && <span className="header-loading">Updating...</span>}
       </header>
 
       <aside className="sidebar">
@@ -112,6 +120,8 @@ export default function App() {
         <KpiCards data={summary} />
 
         <Charts data={charts} />
+
+        <CustomerInsights data={insights} />
 
         <DataTable
           data={tableData}
