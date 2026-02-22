@@ -37,7 +37,7 @@ const TABS = [
   { id: "personas", icon: "personas", label: "Persona (Cluster 3)", shortLabel: "Persona" },
 ];
 
-function InsightLink({ label, targetId, icon, onClick }) {
+function InsightLink({ label, targetId, icon, onClick, badge }) {
   const iconMap = {
     cluster: "📊",
     top: "▲",
@@ -57,6 +57,7 @@ function InsightLink({ label, targetId, icon, onClick }) {
     <button className="insight-nav-item" type="button" onClick={handleClick}>
       <span className={`insight-nav-icon insight-nav-icon--${icon}`}>{iconMap[icon]}</span>
       <span className="insight-nav-label">{label}</span>
+      {badge && <span className="insight-rank-badge" title={badge.title}>{badge.emoji}</span>}
       <span className="insight-nav-arrow">→</span>
     </button>
   );
@@ -160,9 +161,9 @@ export default function Filters({ metadata, filters, onChange, onReset, onSelect
       <nav className="insights-nav">
         <p className="mobile-panel-title">Key Insights</p>
         <p className="insights-nav-group-label">Customer Segments</p>
-        <InsightLink label="Cluster 1" icon="cluster" onClick={() => onSelectCluster?.("1")} />
-        <InsightLink label="Cluster 2" icon="cluster" onClick={() => onSelectCluster?.("2")} />
-        <InsightLink label="Cluster 3" icon="cluster" onClick={() => onSelectCluster?.("3")} />
+        <InsightLink label="Cluster 1" icon="cluster" onClick={() => onSelectCluster?.("1")} badge={{ emoji: "🥈", title: "#2 by Total Profit" }} />
+        <InsightLink label="Cluster 2" icon="cluster" onClick={() => onSelectCluster?.("2")} badge={{ emoji: "🥇", title: "#1 Profit Leader" }} />
+        <InsightLink label="Cluster 3" icon="cluster" onClick={() => onSelectCluster?.("3")} badge={{ emoji: "🥉", title: "#3 by Total Profit" }} />
 
         <p className="insights-nav-group-label">Customer Rankings</p>
         <InsightLink label="Top 10 Customers" icon="top" onClick={() => onSelectRanking?.("top10")} />

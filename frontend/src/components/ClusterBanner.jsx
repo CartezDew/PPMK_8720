@@ -2,6 +2,14 @@ import { useState, useEffect } from "react";
 import { fetchClusterProfile } from "../api.js";
 import aiIcon from "../images/ai-icon.webp";
 
+const CLUSTER_RANKS = { "2": 1, "1": 2, "3": 3 };
+
+const RANK_LABELS = {
+  1: { emoji: "🥇", label: "#1 Profit Leader" },
+  2: { emoji: "🥈", label: "#2 by Total Profit" },
+  3: { emoji: "🥉", label: "#3 by Total Profit" },
+};
+
 const CLUSTER_NARRATIVES = {
   "1": {
     title: "Cluster 1 — Volume Segment",
@@ -435,6 +443,8 @@ export default function ClusterBanner({ clusterId, filters, summaryData, onClose
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const narrative = CLUSTER_NARRATIVES[String(clusterId)];
+  const rank = CLUSTER_RANKS[String(clusterId)];
+  const rankInfo = RANK_LABELS[rank];
   const filtersKey = JSON.stringify(filters);
 
   useEffect(() => {
@@ -462,7 +472,10 @@ export default function ClusterBanner({ clusterId, filters, summaryData, onClose
       {/* Header */}
       <div className="cluster-banner-header">
         <div>
-          <h2 className="cluster-banner-title">{narrative.title}</h2>
+          <h2 className="cluster-banner-title">
+            {rankInfo && <span className="cluster-rank-badge" title={rankInfo.label}>{rankInfo.emoji}</span>}
+            {narrative.title}
+          </h2>
           <p className="cluster-banner-subtitle">{narrative.subtitle}</p>
         </div>
         <button className="cluster-banner-close" onClick={onClose} title="Back to all clusters">

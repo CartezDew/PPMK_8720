@@ -410,6 +410,13 @@ body {
   font-weight: 500;
 }
 
+.insight-rank-badge {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
 .insight-nav-arrow {
   font-size: 0.7rem;
   color: var(--color-text-muted);
@@ -445,6 +452,15 @@ body {
   font-weight: 800;
   color: var(--cluster-color, var(--color-primary));
   margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cluster-rank-badge {
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .cluster-banner-subtitle {
