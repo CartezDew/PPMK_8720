@@ -266,6 +266,28 @@ export default function DataTable({
           <span className="page-info">
             Page {page} of {total_pages}
           </span>
+          <span className="page-goto">
+            <label htmlFor="goto-page">Go to</label>
+            <input
+              id="goto-page"
+              type="number"
+              min={1}
+              max={total_pages}
+              defaultValue={page}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const val = Math.max(1, Math.min(total_pages, Number(e.target.value) || 1));
+                  onPageChange(val);
+                  e.target.value = val;
+                }
+              }}
+              onBlur={(e) => {
+                const val = Math.max(1, Math.min(total_pages, Number(e.target.value) || 1));
+                if (val !== page) onPageChange(val);
+                e.target.value = val;
+              }}
+            />
+          </span>
           <button
             disabled={page >= total_pages}
             onClick={() => onPageChange(page + 1)}

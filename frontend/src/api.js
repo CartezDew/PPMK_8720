@@ -22,6 +22,8 @@ function buildQuery(filters) {
     params.set("gender", filters.gender.join(","));
   if (filters.homeowner?.length)
     params.set("homeowner", filters.homeowner.join(","));
+  if (filters.marital?.length)
+    params.set("marital", filters.marital.join(","));
   return params.toString();
 }
 

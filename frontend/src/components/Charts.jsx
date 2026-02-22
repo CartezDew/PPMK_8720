@@ -407,7 +407,64 @@ function PieChartCard({ data, fills, title, subtitle }) {
   );
 }
 
-export default function Charts({ data, onClusterClick, onAgeClick, onGenderClick, onHomeownerClick, onDwellingClick, onEducationClick }) {
+function LifestyleProfitCard({ data }) {
+  if (!data?.length) return null;
+  const top3 = data.filter((d) => d.diff > 0).slice(0, 3);
+  if (top3.length === 0) return null;
+
+  return (
+    <ChartCard
+      title="Lifestyle Interest Profit Insights"
+      subtitle="Which lifestyle interests correlate with higher-value customers?"
+    >
+      <div className="lifestyle-profit-list">
+        {top3.map((item) => (
+          <div key={item.name} className="lifestyle-profit-item">
+            <div className="lifestyle-profit-name">{item.name} Enthusiasts</div>
+            <div className="lifestyle-profit-stats">
+              <span className="lifestyle-profit-diff" style={{ color: "#059669" }}>
+                +${Math.abs(item.diff).toLocaleString("en-US")}
+              </span>
+              <span className="lifestyle-profit-detail">
+                higher avg profit vs non-{item.name.toLowerCase()} customers
+              </span>
+            </div>
+            <div className="lifestyle-profit-bar-wrap">
+              <div className="lifestyle-profit-bar-row">
+                <span className="lifestyle-profit-bar-label">With</span>
+                <div className="lifestyle-profit-bar-track">
+                  <div
+                    className="lifestyle-profit-bar-fill"
+                    style={{
+                      width: `${Math.min(100, (item.avg_profit_yes / Math.max(item.avg_profit_yes, item.avg_profit_no)) * 100)}%`,
+                      background: "#059669",
+                    }}
+                  />
+                </div>
+                <span className="lifestyle-profit-bar-val">${item.avg_profit_yes.toLocaleString("en-US")}</span>
+              </div>
+              <div className="lifestyle-profit-bar-row">
+                <span className="lifestyle-profit-bar-label">Without</span>
+                <div className="lifestyle-profit-bar-track">
+                  <div
+                    className="lifestyle-profit-bar-fill"
+                    style={{
+                      width: `${Math.min(100, (item.avg_profit_no / Math.max(item.avg_profit_yes, item.avg_profit_no)) * 100)}%`,
+                      background: "#94a3b8",
+                    }}
+                  />
+                </div>
+                <span className="lifestyle-profit-bar-val">${item.avg_profit_no.toLocaleString("en-US")}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </ChartCard>
+  );
+}
+
+export default function Charts({ data, onClusterClick, onAgeClick, onGenderClick, onHomeownerClick, onDwellingClick, onEducationClick, onMaritalClick }) {
   if (!data) return null;
 
   const clusterFills = rankedFills(data.profit_by_cluster, "value");
@@ -418,6 +475,8 @@ export default function Charts({ data, onClusterClick, onAgeClick, onGenderClick
   const lifestyleFills = data.lifestyle_data ? rankedFills(data.lifestyle_data, "pct") : [];
   const eduFills = data.profit_by_education ? rankedFills(data.profit_by_education, "avg_profit") : [];
   const pieFills = data.profit_components ? rankedFills(data.profit_components, "value") : [];
+  const maritalFills = data.profit_by_marital ? rankedFills(data.profit_by_marital, "total_profit") : [];
+  const responderFills = data.responder_data ? rankedFills(data.responder_data, "avg_profit") : [];
 
   return (
     <section id="section-charts" className="charts-section">
@@ -509,6 +568,31 @@ export default function Charts({ data, onClusterClick, onAgeClick, onGenderClick
             subtitle="Does education correlate with customer value?"
             onBarClick={onEducationClick}
           />
+        )}
+
+        {data.profit_by_marital?.length > 0 && (
+          <VerticalBarChart
+            data={data.profit_by_marital}
+            valueKey="total_profit"
+            fills={maritalFills}
+            title="Total Profit by Marital Status"
+            subtitle="Single vs married customer profitability"
+            onBarClick={onMaritalClick}
+          />
+        )}
+
+        {data.responder_data?.length > 0 && (
+          <VerticalBarChart
+            data={data.responder_data}
+            valueKey="avg_profit"
+            fills={responderFills}
+            title="Avg Profit by Responder Rating"
+            subtitle="Do more responsive customers generate higher value?"
+          />
+        )}
+
+        {data.lifestyle_profit?.length > 0 && (
+          <LifestyleProfitCard data={data.lifestyle_profit} />
         )}
       </div>
     </section>

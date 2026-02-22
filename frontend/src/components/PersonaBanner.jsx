@@ -61,7 +61,7 @@ const MARCUS = {
   favoriteTeam: "Atlanta Falcons",
   seasonPassHolder: true,
 
-  bio: "Forrest G. is a semi-affluent operations manager in his early 40s who lives for premium entertainment. A devoted Atlanta Falcons fan and season pass holder, he records every game on his DVR and watches in HD. He's a hands-on dad with two young kids, drives a 2025 Toyota Tacoma, and carries three credit cards — including one with an upscale retailer. He represents the highest-value customer in the portfolio: fewer in number, but each one generating outsized profit through heavy service adoption.",
+  bio: "Forrest G. is a semi-affluent operations manager in his early 40s who lives for premium entertainment. A devoted Atlanta Falcons fan and season pass holder, he records every game on his DVR and watches in HD. He also enjoys shrimping with his friend Bubba. He's a hands-on dad with two young kids, drives a 2025 Toyota Tacoma, and carries three credit cards — including one with an upscale retailer. He represents the highest-value customer in the portfolio: fewer in number, but each one generating outsized profit through heavy service adoption.",
 
   quickFacts: [
     { icon: "📺", text: "Records games and sports content on DVR" },

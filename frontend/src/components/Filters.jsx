@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function SectionIcon({ type }) {
   const icons = {
@@ -63,7 +63,7 @@ function InsightLink({ label, targetId, icon, onClick, badge }) {
   );
 }
 
-function MultiSelect({ label, options, selected, onChange, disabled }) {
+function MultiSelect({ label, options, selected, onChange, disabled, counts }) {
   const [open, setOpen] = useState(false);
 
   const toggle = (val) => {
@@ -99,6 +99,9 @@ function MultiSelect({ label, options, selected, onChange, disabled }) {
                 onChange={() => toggle(opt)}
               />
               <span>{opt}</span>
+              {counts && counts[opt] != null && (
+                <span className="filter-option-count">{Number(counts[opt]).toLocaleString()}</span>
+              )}
             </label>
           ))}
         </div>
@@ -114,13 +117,20 @@ const FILTER_DEFS = [
   { key: "education", label: "Education Level" },
   { key: "gender", label: "Gender" },
   { key: "homeowner", label: "Homeownership" },
+  { key: "marital", label: "Marital Status" },
 ];
 
-export default function Filters({ metadata, filters, onChange, onReset, onSelectCluster, onSelectRanking, onSelectBucket, onLaunchSimulator, onSelectPersona, filtersDisabled }) {
+export default function Filters({ metadata, filters, onChange, onReset, onSelectCluster, onSelectRanking, onSelectBucket, onLaunchSimulator, onSelectPersona, filtersDisabled, collapseSignal }) {
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== "undefined" && window.innerWidth <= 730) return null;
     return "filters";
   });
+
+  useEffect(() => {
+    if (collapseSignal > 0 && window.innerWidth <= 730) {
+      setActiveTab(null);
+    }
+  }, [collapseSignal]);
   const hasActive = Object.values(filters).some((v) => v.length > 0);
 
   const toggleTab = (id) => setActiveTab((prev) => (prev === id ? null : id));
@@ -156,6 +166,7 @@ export default function Filters({ metadata, filters, onChange, onReset, onSelect
             selected={filters[key]}
             onChange={(vals) => onChange(key, vals)}
             disabled={filtersDisabled}
+            counts={metadata.counts?.[key]}
           />
         ))}
       </>
