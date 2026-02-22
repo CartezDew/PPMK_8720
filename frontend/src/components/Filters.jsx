@@ -117,7 +117,10 @@ const FILTER_DEFS = [
 ];
 
 export default function Filters({ metadata, filters, onChange, onReset, onSelectCluster, onSelectRanking, onSelectBucket, onLaunchSimulator, onSelectPersona, filtersDisabled }) {
-  const [activeTab, setActiveTab] = useState("filters");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== "undefined" && window.innerWidth <= 730) return null;
+    return "filters";
+  });
   const hasActive = Object.values(filters).some((v) => v.length > 0);
 
   const toggleTab = (id) => setActiveTab((prev) => (prev === id ? null : id));
@@ -238,7 +241,20 @@ export default function Filters({ metadata, filters, onChange, onReset, onSelect
               <span className="sidebar-section-toggle">{isOpen ? "−" : "+"}</span>
             </button>
             {isOpen && (
-              <div className="sidebar-section-body">{sectionContent[tab.id]}</div>
+              <div className="sidebar-section-body">
+                {sectionContent[tab.id]}
+                <button
+                  className="mobile-collapse-btn"
+                  type="button"
+                  onClick={() => setActiveTab(null)}
+                  aria-label="Collapse section"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 15l-6-6-6 6" />
+                  </svg>
+                  <span>Collapse</span>
+                </button>
+              </div>
             )}
           </div>
         );
