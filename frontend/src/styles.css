@@ -4264,6 +4264,16 @@ body {
   }
 }
 
+@media (max-width: 420px) {
+  .sim-preset-name {
+    font-size: 0.72rem;
+  }
+
+  .sim-preset-desc {
+    font-size: 0.6rem;
+  }
+}
+
 /* ── Persona Banner ── */
 .persona-identity {
   display: flex;
@@ -4803,6 +4813,12 @@ body {
 
   .persona-container {
     padding: 16px;
+  }
+}
+
+@media (max-width: 540px) {
+  .sidebar-section-body .sidebar-sim-desc {
+    text-align: left;
   }
 }
 
