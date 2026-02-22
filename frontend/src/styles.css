@@ -4589,3 +4589,57 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+@media (max-width: 460px) {
+  .app-header {
+    padding: 0 13px;
+  }
+
+  .header-brand {
+    gap: 8px;
+  }
+
+  .header-logo {
+    width: 33px;
+    height: 33px;
+  }
+
+  .app-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.62rem;
+  }
+}
+
+@media (max-width: 370px) {
+  .app-header {
+    padding: 0 13px;
+  }
+
+  .header-brand {
+    gap: 8px;
+  }
+
+  .header-logo {
+    width: 30px;
+    height: 30px;
+  }
+
+  .app-header h1 {
+    font-size: 1rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.62rem;
+  }
+  .team-hamburger {
+    width: 16px;
+    height: 12px;
+  }
+  .team-hamburger-bar {
+    width: 100%;
+    height: 1px;
+  }
+}
