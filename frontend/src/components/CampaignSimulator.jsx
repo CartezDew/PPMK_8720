@@ -31,46 +31,93 @@ const PRESETS = {
   conservative: {
     label: "Conservative",
     desc: "Low-risk, steady returns",
-    budget: 25000, duration: 18, monthlyRevenue: 3000, monthlyCost: 1000, discountRate: 10,
+    budget: 25000, duration: 18, monthlyRevenue: 3000, monthlyCost: 1000, discountRate: 10, estimatedCustomers: 200,
   },
   moderate: {
     label: "Moderate",
     desc: "Balanced risk-reward",
-    budget: 50000, duration: 12, monthlyRevenue: 8000, monthlyCost: 2000, discountRate: 8,
+    budget: 50000, duration: 12, monthlyRevenue: 8000, monthlyCost: 2000, discountRate: 8, estimatedCustomers: 500,
   },
   aggressive: {
     label: "Aggressive",
     desc: "High spend, high reward",
-    budget: 100000, duration: 6, monthlyRevenue: 25000, monthlyCost: 5000, discountRate: 5,
+    budget: 100000, duration: 6, monthlyRevenue: 25000, monthlyCost: 5000, discountRate: 5, estimatedCustomers: 1500,
   },
 };
 
-function calcScore(npv, paybackMonth, duration, roi, irr, discountRate) {
+function calcScore(npv, paybackMonth, duration, roi, irr, discountRate, costPerCustomer, estimatedCustomers, avgCustomerValue, totalCustomers) {
   let score = 0;
-  if (npv > 0) score += 30;
-  else score += Math.max(0, 30 + (npv / 1000));
+
+  if (npv > 0) score += 20;
+  else score += Math.max(0, 20 + (npv / 1000));
 
   if (paybackMonth !== null && paybackMonth <= duration) {
-    score += 25 * (1 - (paybackMonth / duration) * 0.5);
+    score += 15 * (1 - (paybackMonth / duration) * 0.5);
   }
 
-  if (roi > 0) score += Math.min(25, roi / 2);
+  if (roi > 0) score += Math.min(15, roi / 3);
 
   if (irr !== null && irr > 0) {
-    score += irr > discountRate ? 20 : 20 * (irr / Math.max(discountRate, 1));
+    score += irr > discountRate ? 10 : 10 * (irr / Math.max(discountRate, 1));
+  }
+
+  if (avgCustomerValue > 0 && costPerCustomer > 0) {
+    const ratio = costPerCustomer / avgCustomerValue;
+    if (ratio <= 0.25) score += 25;
+    else if (ratio <= 0.5) score += 20;
+    else if (ratio <= 0.75) score += 14;
+    else if (ratio <= 1) score += 6;
+    else if (ratio <= 2) score -= 5;
+    else if (ratio <= 5) score -= 15;
+    else score -= 30;
+  } else if (costPerCustomer > 0) {
+    if (costPerCustomer <= 50) score += 20;
+    else if (costPerCustomer <= 200) score += 10;
+    else if (costPerCustomer <= 500) score += 0;
+    else score -= 15;
+  }
+
+  if (totalCustomers > 0 && estimatedCustomers > 0) {
+    const reachPct = estimatedCustomers / totalCustomers;
+    if (reachPct >= 0.2) score += 15;
+    else if (reachPct >= 0.1) score += 12;
+    else if (reachPct >= 0.05) score += 8;
+    else if (reachPct >= 0.01) score += 4;
+    else score -= 5;
   }
 
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function InputGroup({ label, value, onChange, prefix, suffix, min = 0, max, step = 1000, helpText }) {
+function InputGroup({ label, value, onChange, prefix, suffix, min = 0, max, step = 1000, helpText, integer }) {
   const isDollar = prefix === "$";
-  const display = isDollar ? Number(value).toLocaleString("en-US") : value;
+  const [focused, setFocused] = useState(false);
+  const [localVal, setLocalVal] = useState("");
+
+  const formatted = isDollar ? Number(value).toLocaleString("en-US") : String(Number(value));
+
+  const handleFocus = (e) => {
+    setFocused(true);
+    setLocalVal(String(Number(value)));
+    setTimeout(() => e.target.select(), 0);
+  };
 
   const handleChange = (e) => {
-    const raw = e.target.value.replace(/,/g, "");
-    const num = Number(raw) || 0;
-    onChange(max != null ? Math.min(num, max) : num);
+    const raw = e.target.value.replace(/[^0-9]/g, "");
+    setLocalVal(raw);
+    if (raw === "") return;
+    let num = integer ? parseInt(raw, 10) : Number(raw);
+    if (isNaN(num)) return;
+    if (max != null) num = Math.min(num, max);
+    onChange(num);
+  };
+
+  const handleBlur = () => {
+    setFocused(false);
+    let num = integer ? parseInt(localVal, 10) : Number(localVal);
+    if (isNaN(num) || num < (min ?? 0)) num = min ?? 0;
+    if (max != null) num = Math.min(num, max);
+    onChange(num);
   };
 
   return (
@@ -79,14 +126,13 @@ function InputGroup({ label, value, onChange, prefix, suffix, min = 0, max, step
       <div className="sim-input-wrap">
         {prefix && <span className="sim-input-affix sim-input-prefix">{prefix}</span>}
         <input
-          type={isDollar ? "text" : "number"}
+          type="text"
           className="sim-input"
-          value={display}
+          value={focused ? localVal : formatted}
           onChange={handleChange}
-          min={min}
-          max={max}
-          step={step}
-          inputMode={isDollar ? "numeric" : undefined}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          inputMode="numeric"
         />
         {suffix && <span className="sim-input-affix sim-input-suffix">{suffix}</span>}
       </div>
@@ -245,6 +291,165 @@ function SensitivityTable({ budget, duration, monthlyRevenue, monthlyCost, disco
   );
 }
 
+function FormulaRow({ name, formula, inputs, result }) {
+  return (
+    <tr className="sim-formula-row">
+      <td className="sim-formula-metric">{name}</td>
+      <td className="sim-formula-expr">{formula}</td>
+      <td className="sim-formula-inputs">{inputs}</td>
+      <td className="sim-formula-result">{result}</td>
+    </tr>
+  );
+}
+
+function FormulasPanel({ budget, duration, monthlyRevenue, monthlyCost, discountRate, estimatedCustomers, results }) {
+  const netCF = monthlyRevenue - monthlyCost;
+  const monthlyRate = discountRate / 100 / 12;
+
+  const rows = [
+    {
+      name: "Net Monthly Cash Flow",
+      formula: "Monthly Revenue − Monthly Cost",
+      inputs: `${fmt$(monthlyRevenue)} − ${fmt$(monthlyCost)}`,
+      result: fmt$(netCF),
+    },
+    {
+      name: "Total Returns",
+      formula: "Net Monthly Cash Flow × Duration",
+      inputs: `${fmt$(netCF)} × ${duration} months`,
+      result: fmt$(results.totalReturns),
+    },
+    {
+      name: "Net Present Value (NPV)",
+      formula: "Σ [ CFₜ / (1 + r)ᵗ ] for t = 0…n",
+      inputs: `CF₀ = −${fmt$(budget)}, CF₁…${duration} = ${fmt$(netCF)}, r = ${(monthlyRate * 100).toFixed(4)}% /mo`,
+      result: fmt$(results.npv),
+    },
+    {
+      name: "Return on Investment (ROI)",
+      formula: "((Total Returns − Budget) / Budget) × 100",
+      inputs: `(${fmt$(results.totalReturns)} − ${fmt$(budget)}) / ${fmt$(budget)}`,
+      result: `${results.roi.toFixed(1)}%`,
+    },
+    {
+      name: "Payback Period",
+      formula: "Budget / Net Monthly Cash Flow",
+      inputs: `${fmt$(budget)} / ${fmt$(netCF)}`,
+      result: results.paybackMonth !== null ? `${results.paybackMonth.toFixed(1)} months` : "Never",
+    },
+    {
+      name: "Internal Rate of Return (IRR)",
+      formula: "Rate r where NPV = 0, annualized: (1 + r_monthly)¹² − 1",
+      inputs: `Solve NPV(r, [−${fmt$(budget)}, ${fmt$(netCF)}×${duration}]) = 0`,
+      result: results.irr !== null ? `${results.irr.toFixed(1)}%` : "N/A",
+    },
+    {
+      name: "Cost per Customer",
+      formula: "Budget / Estimated Customers",
+      inputs: `${fmt$(budget)} / ${estimatedCustomers.toLocaleString("en-US")}`,
+      result: fmt$(results.costPerCustomer),
+    },
+    {
+      name: "CPC ÷ Customer Value",
+      formula: "Cost per Customer / Avg Customer Profit",
+      inputs: `${fmt$(results.costPerCustomer)} / ${fmt$(results.avgCustomerValue)}`,
+      result: results.avgCustomerValue > 0 ? `${results.cpcToValueRatio.toFixed(1)}×` : "N/A",
+    },
+    {
+      name: "Reach % of Customer Base",
+      formula: "(Estimated Customers / Total Customers) × 100",
+      inputs: `(${estimatedCustomers.toLocaleString("en-US")} / ${results.totalCustomers.toLocaleString("en-US")}) × 100`,
+      result: results.totalCustomers > 0 ? `${results.reachPct.toFixed(1)}%` : "N/A",
+    },
+    {
+      name: "Budget % of Total Profit",
+      formula: "(Budget / Total Profit) × 100",
+      inputs: `(${fmt$(budget)} / ${fmt$(results.totalProfit)}) × 100`,
+      result: `${results.spendPct.toFixed(2)}%`,
+    },
+    {
+      name: "Campaign Score",
+      formula: "Weighted: NPV(20) + Payback(15) + ROI(15) + IRR(10) + CPC vs Value(25) + Reach(15)",
+      inputs: `NPV=${fmt$(results.npv)}, ROI=${results.roi.toFixed(1)}%, CPC/Value=${results.cpcToValueRatio.toFixed(1)}×, Reach=${results.reachPct.toFixed(1)}%`,
+      result: `${results.score} / 100`,
+    },
+  ];
+
+  return (
+    <div className="sim-formulas-panel">
+      <table className="sim-formulas-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Formula</th>
+            <th>Inputs</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => <FormulaRow key={r.name} {...r} />)}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function downloadFormulasCSV(budget, duration, monthlyRevenue, monthlyCost, discountRate, estimatedCustomers, results) {
+  const netCF = monthlyRevenue - monthlyCost;
+  const monthlyRate = discountRate / 100 / 12;
+
+  const header = ["Metric", "Formula", "Inputs", "Result"];
+  const rows = [
+    ["Net Monthly Cash Flow", "Monthly Revenue - Monthly Cost", `${monthlyRevenue} - ${monthlyCost}`, netCF],
+    ["Total Returns", "Net Monthly Cash Flow × Duration", `${netCF} × ${duration}`, results.totalReturns],
+    ["Net Present Value (NPV)", "SUM(CF_t / (1 + r)^t) for t=0..n", `CF0=-${budget}; CF1..${duration}=${netCF}; r=${(monthlyRate * 100).toFixed(4)}%/mo`, results.npv.toFixed(2)],
+    ["Return on Investment (ROI)", "((Total Returns - Budget) / Budget) × 100", `(${results.totalReturns} - ${budget}) / ${budget}`, `${results.roi.toFixed(2)}%`],
+    ["Payback Period", "Budget / Net Monthly Cash Flow", `${budget} / ${netCF}`, results.paybackMonth !== null ? `${results.paybackMonth.toFixed(2)} months` : "Never"],
+    ["Internal Rate of Return (IRR)", "Rate r where NPV=0 annualized: (1+r_monthly)^12 - 1", `Solve NPV(r [-${budget} ${netCF}x${duration}])=0`, results.irr !== null ? `${results.irr.toFixed(2)}%` : "N/A"],
+    ["Cost per Customer", "Budget / Estimated Customers", `${budget} / ${estimatedCustomers}`, results.costPerCustomer.toFixed(2)],
+    ["Budget % of Total Profit", "(Budget / Total Profit) × 100", `(${budget} / ${results.totalProfit}) × 100`, `${results.spendPct.toFixed(2)}%`],
+    ["CPC / Customer Value Ratio", "Cost per Customer / Avg Customer Profit", `${results.costPerCustomer.toFixed(2)} / ${results.avgCustomerValue}`, results.avgCustomerValue > 0 ? `${results.cpcToValueRatio.toFixed(2)}x` : "N/A"],
+    ["Reach % of Customer Base", "(Estimated Customers / Total Customers) x 100", `(${estimatedCustomers} / ${results.totalCustomers}) x 100`, results.totalCustomers > 0 ? `${results.reachPct.toFixed(2)}%` : "N/A"],
+    ["Campaign Score", "Weighted: NPV(20) + Payback(15) + ROI(15) + IRR(10) + CPC vs Value(25) + Reach(15)", `NPV=${results.npv.toFixed(2)} ROI=${results.roi.toFixed(2)}% CPC/Value=${results.cpcToValueRatio.toFixed(2)}x Reach=${results.reachPct.toFixed(2)}%`, `${results.score}/100`],
+    [],
+    ["--- INPUTS ---"],
+    ["Campaign Budget", "", "", budget],
+    ["Campaign Duration (months)", "", "", duration],
+    ["Expected Monthly Revenue", "", "", monthlyRevenue],
+    ["Ongoing Monthly Cost", "", "", monthlyCost],
+    ["Discount Rate (Annual %)", "", "", `${discountRate}%`],
+    ["Estimated Customer Reach", "", "", estimatedCustomers],
+    [],
+    ["--- CUSTOMER DATA BENCHMARKS ---"],
+    ["Avg Customer Profit (from data)", "", "", results.avgCustomerValue],
+    ["Median Customer Profit (from data)", "", "", results.medianProfit],
+    ["Total Customers in Database", "", "", results.totalCustomers],
+    ["Avg Household Income (from data)", "", "", results.avgIncome],
+    [],
+    ["--- CASH FLOWS ---"],
+    ["Month", "Cash Flow", "Cumulative Cash Flow"],
+  ];
+
+  results.cumulativeCF.forEach((cum, i) => {
+    const cf = i === 0 ? -budget : netCF;
+    rows.push([`Month ${i}`, cf, cum.toFixed(2)]);
+  });
+
+  const escape = (v) => {
+    const s = String(v ?? "");
+    return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
+  const csv = [header.join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "campaign_simulator_formulas.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function generateAssessment(results) {
   const lines = [];
 
@@ -274,17 +479,45 @@ function generateAssessment(results) {
     lines.push(`The campaign budget is ${results.spendPct.toFixed(2)}% of current total profit — a manageable investment relative to existing revenue.`);
   }
 
+  const cpc = results.costPerCustomer;
+  const avgVal = results.avgCustomerValue;
+  const ratio = results.cpcToValueRatio;
+
+  if (avgVal > 0 && cpc > 0) {
+    if (ratio > 5) {
+      lines.push(`CRITICAL: At ${fmt$(cpc)} per customer, you are spending ${ratio.toFixed(1)}× the average customer value of ${fmt$(avgVal)}. This campaign will almost certainly lose money on a per-customer basis. Reduce the budget or dramatically increase reach.`);
+    } else if (ratio > 2) {
+      lines.push(`WARNING: Customer acquisition cost of ${fmt$(cpc)} is ${ratio.toFixed(1)}× the average customer value of ${fmt$(avgVal)}. You are paying significantly more to acquire each customer than they are worth. This is not sustainable.`);
+    } else if (ratio > 1) {
+      lines.push(`Customer acquisition cost of ${fmt$(cpc)} exceeds the average customer value of ${fmt$(avgVal)} (${ratio.toFixed(1)}×). Each new customer costs more than their expected profit contribution. Consider lowering spend or improving targeting.`);
+    } else if (ratio > 0.5) {
+      lines.push(`At ${fmt$(cpc)} per customer (${(ratio * 100).toFixed(0)}% of avg customer value ${fmt$(avgVal)}), customer acquisition cost is moderate. There is a positive margin per customer, but room to improve efficiency.`);
+    } else {
+      lines.push(`Customer acquisition cost of ${fmt$(cpc)} is well below the average customer value of ${fmt$(avgVal)} (${(ratio * 100).toFixed(0)}%), indicating efficient spend with strong per-customer economics.`);
+    }
+  } else if (cpc > 0) {
+    lines.push(`Cost per customer is ${fmt$(cpc)}. Connect customer profit data to benchmark this against actual customer value.`);
+  }
+
+  if (results.totalCustomers > 0 && results.reachPct < 1) {
+    lines.push(`This campaign targets only ${results.reachPct.toFixed(2)}% of the ${results.totalCustomers.toLocaleString("en-US")} customer base. At such a narrow reach, even strong financial projections may not justify the investment. Consider whether the audience can realistically be expanded.`);
+  } else if (results.totalCustomers > 0 && results.reachPct < 5) {
+    lines.push(`Reaching ${results.reachPct.toFixed(1)}% of the ${results.totalCustomers.toLocaleString("en-US")} customer base. This is a focused campaign — ensure the targeting criteria justify the limited audience.`);
+  }
+
   return lines;
 }
 
 export default function CampaignSimulator({ summaryData, onClose }) {
-  const [budget, setBudget] = useState(50000);
-  const [duration, setDuration] = useState(12);
-  const [monthlyRevenue, setMonthlyRevenue] = useState(8000);
-  const [monthlyCost, setMonthlyCost] = useState(2000);
-  const [discountRate, setDiscountRate] = useState(8);
-  const [activePreset, setActivePreset] = useState("moderate");
+  const [budget, setBudget] = useState(PRESETS.conservative.budget);
+  const [duration, setDuration] = useState(PRESETS.conservative.duration);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(PRESETS.conservative.monthlyRevenue);
+  const [monthlyCost, setMonthlyCost] = useState(PRESETS.conservative.monthlyCost);
+  const [discountRate, setDiscountRate] = useState(PRESETS.conservative.discountRate);
+  const [activePreset, setActivePreset] = useState("conservative");
   const [showSensitivity, setShowSensitivity] = useState(false);
+  const [showFormulas, setShowFormulas] = useState(false);
+  const [estimatedCustomers, setEstimatedCustomers] = useState(PRESETS.conservative.estimatedCustomers);
 
   const applyPreset = (key) => {
     const p = PRESETS[key];
@@ -293,6 +526,7 @@ export default function CampaignSimulator({ summaryData, onClose }) {
     setMonthlyRevenue(p.monthlyRevenue);
     setMonthlyCost(p.monthlyCost);
     setDiscountRate(p.discountRate);
+    setEstimatedCustomers(p.estimatedCustomers);
     setActivePreset(key);
   };
 
@@ -327,14 +561,25 @@ export default function CampaignSimulator({ summaryData, onClose }) {
     const totalProfit = summaryData?.total_profit || 0;
     const spendPct = totalProfit > 0 ? (budget / totalProfit) * 100 : 0;
 
-    const score = calcScore(npv, paybackMonth, duration, roi, irr, discountRate);
+    const avgCustomerValue = summaryData?.avg_profit || 0;
+    const totalCustomers = summaryData?.total_customers || 0;
+    const medianProfit = summaryData?.median_profit || 0;
+    const avgIncome = summaryData?.avg_household_income || 0;
+
+    const costPerCustomer = estimatedCustomers > 0 ? budget / estimatedCustomers : 0;
+    const cpcToValueRatio = avgCustomerValue > 0 && costPerCustomer > 0 ? costPerCustomer / avgCustomerValue : 0;
+    const reachPct = totalCustomers > 0 && estimatedCustomers > 0 ? (estimatedCustomers / totalCustomers) * 100 : 0;
+
+    const score = calcScore(npv, paybackMonth, duration, roi, irr, discountRate, costPerCustomer, estimatedCustomers, avgCustomerValue, totalCustomers);
 
     return {
       npv, irr, paybackMonth, roi, totalReturns, netMonthlyCF,
       spendPct, totalProfit, cashFlows, cumulativeCF,
-      score, duration, discountRate, budget,
+      score, duration, discountRate, budget, costPerCustomer,
+      avgCustomerValue, totalCustomers, medianProfit, avgIncome,
+      cpcToValueRatio, reachPct,
     };
-  }, [budget, duration, monthlyRevenue, monthlyCost, discountRate, summaryData]);
+  }, [budget, duration, monthlyRevenue, monthlyCost, discountRate, estimatedCustomers, summaryData]);
 
   const assessment = useMemo(() => generateAssessment(results), [results]);
 
@@ -375,6 +620,22 @@ export default function CampaignSimulator({ summaryData, onClose }) {
       status: results.netMonthlyCF > 0 ? "positive" : "negative",
       hint: "Revenue minus costs",
     },
+    {
+      label: "Estimated Reach",
+      value: estimatedCustomers.toLocaleString("en-US"),
+      status: results.reachPct >= 10 ? "positive" : results.reachPct >= 1 ? "neutral" : "negative",
+      hint: results.totalCustomers > 0
+        ? `${results.reachPct.toFixed(1)}% of ${results.totalCustomers.toLocaleString("en-US")} customers`
+        : "Customers targeted",
+    },
+    {
+      label: "Cost per Customer",
+      value: fmt$(results.costPerCustomer),
+      status: results.cpcToValueRatio <= 0.5 ? "positive" : results.cpcToValueRatio <= 1 ? "neutral" : "negative",
+      hint: results.avgCustomerValue > 0
+        ? `${results.cpcToValueRatio.toFixed(1)}× avg value (${fmt$(results.avgCustomerValue)})`
+        : "Budget ÷ estimated reach",
+    },
   ];
 
   return (
@@ -414,9 +675,10 @@ export default function CampaignSimulator({ summaryData, onClose }) {
         </div>
         <div className="sim-input-grid">
           <InputGroup label="Campaign Budget" prefix="$" value={budget} onChange={(v) => { setBudget(v); setActivePreset(null); }} step={1000} helpText="Total upfront investment" />
-          <InputGroup label="Campaign Duration" suffix="months" value={duration} onChange={(v) => { setDuration(v); setActivePreset(null); }} min={1} max={60} step={1} helpText="How long the campaign runs" />
+          <InputGroup label="Campaign Duration" suffix="months" value={duration} onChange={(v) => { setDuration(v); setActivePreset(null); }} min={1} max={60} step={1} integer helpText="How long the campaign runs" />
           <InputGroup label="Expected Monthly Revenue" prefix="$" value={monthlyRevenue} onChange={(v) => { setMonthlyRevenue(v); setActivePreset(null); }} step={500} helpText="Revenue generated per month" />
           <InputGroup label="Ongoing Monthly Cost" prefix="$" value={monthlyCost} onChange={(v) => { setMonthlyCost(v); setActivePreset(null); }} step={500} helpText="Recurring costs per month" />
+          <InputGroup label="Estimated Customer Reach" value={estimatedCustomers} onChange={(v) => { setEstimatedCustomers(v); setActivePreset(null); }} min={1} step={50} integer helpText="Customers you expect to reach" />
           <div className="sim-input-group">
             <label className="sim-input-label">Discount Rate (Annual)</label>
             <div className="sim-slider-wrap">
@@ -446,6 +708,65 @@ export default function CampaignSimulator({ summaryData, onClose }) {
         </div>
       </div>
 
+      {/* Customer Economics Benchmark */}
+      {results.avgCustomerValue > 0 && (
+        <div className="sim-section">
+          <div className="cluster-section-header">
+            <svg className="cluster-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7" />
+              <path d="M16 3l2 2-2 2" />
+            </svg>
+            <h4 className="cluster-section-label">Customer Economics</h4>
+            <span className="sim-econ-source">Based on {results.totalCustomers.toLocaleString("en-US")} customers in your data</span>
+          </div>
+          <div className="sim-econ-grid">
+            <div className="sim-econ-card">
+              <span className="sim-econ-card-label">Avg Customer Value</span>
+              <span className="sim-econ-card-value">{fmt$(results.avgCustomerValue)}</span>
+              <span className="sim-econ-card-hint">Average profit per customer</span>
+            </div>
+            <div className="sim-econ-card">
+              <span className="sim-econ-card-label">Median Customer Value</span>
+              <span className="sim-econ-card-value">{fmt$(results.medianProfit)}</span>
+              <span className="sim-econ-card-hint">Midpoint customer profit</span>
+            </div>
+            <div className="sim-econ-card">
+              <span className="sim-econ-card-label">Your Cost per Customer</span>
+              <span className={`sim-econ-card-value ${results.cpcToValueRatio > 1 ? "sim-econ-danger" : results.cpcToValueRatio > 0.5 ? "sim-econ-warn" : "sim-econ-good"}`}>
+                {fmt$(results.costPerCustomer)}
+              </span>
+              <span className="sim-econ-card-hint">Budget ÷ estimated reach</span>
+            </div>
+            <div className="sim-econ-card">
+              <span className="sim-econ-card-label">CPC ÷ Customer Value</span>
+              <span className={`sim-econ-card-value ${results.cpcToValueRatio > 1 ? "sim-econ-danger" : results.cpcToValueRatio > 0.5 ? "sim-econ-warn" : "sim-econ-good"}`}>
+                {results.cpcToValueRatio.toFixed(1)}×
+              </span>
+              <span className="sim-econ-card-hint">{results.cpcToValueRatio <= 0.5 ? "Efficient — well below value" : results.cpcToValueRatio <= 1 ? "Caution — nearing customer value" : "Overspend — exceeds customer value"}</span>
+            </div>
+          </div>
+          <div className="sim-econ-bar-wrap">
+            <div className="sim-econ-bar-header">
+              <span>Customer Acquisition Cost vs Customer Value</span>
+              <span className={results.cpcToValueRatio > 1 ? "sim-econ-danger" : results.cpcToValueRatio > 0.5 ? "sim-econ-warn" : "sim-econ-good"}>
+                {results.cpcToValueRatio > 1 ? "Overspending" : results.cpcToValueRatio > 0.5 ? "Moderate" : "Efficient"}
+              </span>
+            </div>
+            <div className="sim-econ-bar-track">
+              <div className="sim-econ-bar-benchmark" />
+              <div
+                className={`sim-econ-bar-fill ${results.cpcToValueRatio > 1 ? "danger" : results.cpcToValueRatio > 0.5 ? "warn" : "good"}`}
+                style={{ width: `${Math.min(results.cpcToValueRatio * 100, 200) / 2}%` }}
+              />
+              <div className="sim-econ-bar-marker" style={{ left: "50%" }}>
+                <span>Avg Value: {fmt$(results.avgCustomerValue)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Financial Projections */}
       <div className="sim-section">
         <div className="cluster-section-header">
@@ -456,7 +777,44 @@ export default function CampaignSimulator({ summaryData, onClose }) {
             <path d="M12 14h6" />
           </svg>
           <h4 className="cluster-section-label">Financial Projections</h4>
+          <div className="sim-formulas-actions">
+            <button
+              className={`sim-formulas-toggle-btn ${showFormulas ? "active" : ""}`}
+              onClick={() => setShowFormulas((v) => !v)}
+              title="View formulas used in calculations"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 17h6M17 14v6" />
+              </svg>
+              {showFormulas ? "Hide Formulas" : "Show Formulas"}
+            </button>
+            <button
+              className="sim-csv-btn"
+              onClick={() => downloadFormulasCSV(budget, duration, monthlyRevenue, monthlyCost, discountRate, estimatedCustomers, results)}
+              title="Download formulas and outputs as CSV"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download CSV
+            </button>
+          </div>
         </div>
+
+        {showFormulas && (
+          <FormulasPanel
+            budget={budget}
+            duration={duration}
+            monthlyRevenue={monthlyRevenue}
+            monthlyCost={monthlyCost}
+            discountRate={discountRate}
+            estimatedCustomers={estimatedCustomers}
+            results={results}
+          />
+        )}
+
         <div className="sim-results-grid">
           {resultCards.map((card) => (
             <div key={card.label} className={`sim-result-card ${card.status}`}>
