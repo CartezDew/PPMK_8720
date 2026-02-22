@@ -51,6 +51,8 @@ export default function DataTable({
   onSortChange,
   onPageChange,
   showTotals = false,
+  ranking = "",
+  bucket = "",
 }) {
   const [exporting, setExporting] = useState(false);
 
@@ -79,6 +81,8 @@ export default function DataTable({
         search,
         sortBy: sort.by,
         sortDir: sort.dir,
+        ranking,
+        bucket,
       });
       const headers = all.columns.map((c) => COL_LABELS[c] || c);
       const sheetRows = all.rows.map((row) =>
@@ -86,8 +90,10 @@ export default function DataTable({
       );
       const ws = XLSX.utils.aoa_to_sheet([headers, ...sheetRows]);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Customer Records");
-      XLSX.writeFile(wb, "customer_records.xlsx");
+      const sheetName = ranking ? `${ranking}_customers` : bucket ? `${bucket}_tiers` : "Customer Records";
+      const fileName = ranking ? `${ranking}_customers.xlsx` : bucket ? `${bucket}_tiers.xlsx` : "customer_records.xlsx";
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, fileName);
     } catch {
       alert("Export failed. Please try again.");
     } finally {
@@ -102,16 +108,23 @@ export default function DataTable({
         search,
         sortBy: sort.by,
         sortDir: sort.dir,
+        ranking,
+        bucket,
       });
       const headers = all.columns.map((c) => COL_LABELS[c] || c);
       const bodyRows = all.rows.map((row) =>
         all.columns.map((c) => fmtForExport(row[c], c))
       );
 
+      const pdfTitle = ranking
+        ? (ranking === "top10" ? "Top 10 Most Profitable Customers" : "Bottom 10 Least Profitable Customers")
+        : bucket
+        ? (bucket === "top10" ? "Top 10 Highest Value Tiers" : "Bottom 10 Lowest Value Tiers")
+        : "Customer Records";
       const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
       doc.setFontSize(16);
       doc.setTextColor(30, 58, 95);
-      doc.text("Customer Records", 40, 40);
+      doc.text(pdfTitle, 40, 40);
       doc.setFontSize(10);
       doc.setTextColor(100, 116, 139);
       doc.text(`${all.total_count.toLocaleString()} customers`, 40, 56);
@@ -125,7 +138,8 @@ export default function DataTable({
         margin: { left: 30, right: 30 },
       });
 
-      doc.save("customer_records.pdf");
+      const pdfFile = ranking ? `${ranking}_customers.pdf` : bucket ? `${bucket}_tiers.pdf` : "customer_records.pdf";
+      doc.save(pdfFile);
     } catch {
       alert("PDF export failed. Please try again.");
     } finally {
@@ -262,7 +276,9 @@ export default function DataTable({
       )}
 
       <div className="table-export">
-        <p className="table-export-label">Export All {total_count.toLocaleString()} Customer Records</p>
+        <p className="table-export-label">
+          Export {ranking || bucket ? "" : "All "}{total_count.toLocaleString()} Customer Records
+        </p>
         <div className="insights-export-buttons">
           <button
             className="export-btn export-btn--excel"

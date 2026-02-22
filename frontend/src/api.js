@@ -1,6 +1,12 @@
-const BASE =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ||
-  "http://localhost:8000";
+const envUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const BASE = envUrl ? envUrl.replace(/\/+$/, "") : "http://localhost:8000";
+
+if (import.meta.env.PROD && !envUrl) {
+  console.warn(
+    "[api] VITE_API_BASE_URL is not set — falling back to localhost. " +
+    "Set this in your Netlify environment variables."
+  );
+}
 
 function buildQuery(filters) {
   const params = new URLSearchParams();
@@ -78,7 +84,7 @@ export async function fetchBucketProfile(bucketType, filters = {}) {
   return fetchJSON(`/api/bucket-profile/${bucketType}/${qs ? "?" + qs : ""}`);
 }
 
-export async function fetchAllRecords(filters = {}, { search = "", sortBy = "Total Profit", sortDir = "desc" } = {}) {
+export async function fetchAllRecords(filters = {}, { search = "", sortBy = "Total Profit", sortDir = "desc", ranking = "", bucket = "" } = {}) {
   const qs = buildQuery(filters);
   const extra = new URLSearchParams({
     page: "1",
@@ -87,6 +93,8 @@ export async function fetchAllRecords(filters = {}, { search = "", sortBy = "Tot
     sort_dir: sortDir,
   });
   if (search) extra.set("search", search);
+  if (ranking) extra.set("ranking", ranking);
+  if (bucket) extra.set("bucket", bucket);
   const sep = qs ? `${qs}&${extra}` : extra.toString();
   return fetchJSON(`/api/table/?${sep}`);
 }

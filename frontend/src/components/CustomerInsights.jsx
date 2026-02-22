@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -16,7 +16,7 @@ function ExportButtons({ onExcel, onPdf }) {
   return (
     <div className="card-export-buttons">
       <button className="card-export-btn card-export-btn--csv" onClick={onExcel} title="Download Excel">
-        <DownloadIcon /> <span>CSV</span>
+        <DownloadIcon /> <span>Excel</span>
       </button>
       <button className="card-export-btn card-export-btn--pdf" onClick={onPdf} title="Download PDF">
         <DownloadIcon /> <span>PDF</span>
@@ -270,9 +270,8 @@ function BucketTable({ title, accent, rows, variant, onExportExcel, onExportPdf 
               const isOpen = canExpand && expanded[row.profit];
               const customers = row.customers || [];
               return (
-                <>
+                <React.Fragment key={`bucket-${i}`}>
                   <tr
-                    key={`b-${i}`}
                     className={`bucket-row ${isOpen ? "bucket-row-open" : ""} ${canExpand ? "" : "bucket-row-static"}`}
                     onClick={canExpand ? () => toggleExpand(row.profit) : undefined}
                   >
@@ -287,7 +286,7 @@ function BucketTable({ title, accent, rows, variant, onExportExcel, onExportPdf 
                     <td>${Number(row.sum_profit).toLocaleString("en-US")}</td>
                   </tr>
                   {isOpen && customers.length > 0 && (
-                    <tr key={`d-${i}`} className="bucket-detail-row">
+                    <tr className="bucket-detail-row">
                       <td colSpan={colSpan} className="bucket-detail-cell">
                         <div className="bucket-detail-wrap">
                           <table className="bucket-detail-table">
@@ -317,7 +316,7 @@ function BucketTable({ title, accent, rows, variant, onExportExcel, onExportPdf 
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               );
             })}
           </tbody>

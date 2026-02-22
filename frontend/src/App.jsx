@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import {
   fetchMetadata,
   fetchSummary,
@@ -9,13 +9,14 @@ import {
 import Filters from "./components/Filters.jsx";
 import KpiCards from "./components/KpiCards.jsx";
 import Charts from "./components/Charts.jsx";
-import CustomerInsights from "./components/CustomerInsights.jsx";
 import DataTable from "./components/DataTable.jsx";
-import ClusterBanner from "./components/ClusterBanner.jsx";
-import RankingBanner from "./components/RankingBanner.jsx";
-import BucketBanner from "./components/BucketBanner.jsx";
-import CampaignSimulator from "./components/CampaignSimulator.jsx";
-import PersonaBanner from "./components/PersonaBanner.jsx";
+
+const CustomerInsights = lazy(() => import("./components/CustomerInsights.jsx"));
+const ClusterBanner = lazy(() => import("./components/ClusterBanner.jsx"));
+const RankingBanner = lazy(() => import("./components/RankingBanner.jsx"));
+const BucketBanner = lazy(() => import("./components/BucketBanner.jsx"));
+const CampaignSimulator = lazy(() => import("./components/CampaignSimulator.jsx"));
+const PersonaBanner = lazy(() => import("./components/PersonaBanner.jsx"));
 
 const EMPTY_FILTERS = {
   cluster: [],
@@ -55,6 +56,21 @@ export default function App() {
   const isRankingView = rankingView !== null;
   const isBucketView = bucketView !== null;
   const isDetailView = isClusterView || isRankingView || isBucketView || showSimulator || showPersona;
+
+  useEffect(() => {
+    const title = showPersona
+      ? "Persona — Cluster 3 | Dashboard"
+      : showSimulator
+      ? "Campaign Simulator | Dashboard"
+      : isClusterView
+      ? `Cluster ${clusterViewId} | Dashboard`
+      : isRankingView
+      ? `${rankingView === "top10" ? "Top 10" : "Bottom 10"} Customers | Dashboard`
+      : isBucketView
+      ? `${bucketView === "top10" ? "Top" : "Bottom"} Tiers | Dashboard`
+      : "Dashboard";
+    document.title = title;
+  }, [showPersona, showSimulator, isClusterView, clusterViewId, isRankingView, rankingView, isBucketView, bucketView]);
 
   const effectiveFilters = useMemo(
     () => isClusterView ? { ...filters, cluster: [clusterViewId] } : filters,
@@ -208,100 +224,104 @@ export default function App() {
       <main className="main-content">
         {error && <div className="error-banner">{error}</div>}
 
-        {showPersona ? (
-          <PersonaBanner
-            filters={filters}
-            onClose={() => setShowPersona(false)}
-          />
-        ) : showSimulator ? (
-          <CampaignSimulator
-            summaryData={summary}
-            onClose={() => setShowSimulator(false)}
-          />
-        ) : isClusterView ? (
-          <>
-            <ClusterBanner
-              clusterId={clusterViewId}
-              filters={effectiveFilters}
+        <Suspense fallback={<div className="loading-fallback">Loading...</div>}>
+          {showPersona ? (
+            <PersonaBanner
+              filters={filters}
+              onClose={() => setShowPersona(false)}
+            />
+          ) : showSimulator ? (
+            <CampaignSimulator
               summaryData={summary}
-              onClose={() => setClusterViewId(null)}
+              onClose={() => setShowSimulator(false)}
             />
+          ) : isClusterView ? (
+            <>
+              <ClusterBanner
+                clusterId={clusterViewId}
+                filters={effectiveFilters}
+                summaryData={summary}
+                onClose={() => setClusterViewId(null)}
+              />
 
-            <DataTable
-              data={tableData}
-              filters={effectiveFilters}
-              search={tableSearch}
-              sort={tableSort}
-              page={tablePage}
-              onSearchChange={handleSearchChange}
-              onSortChange={handleSortChange}
-              onPageChange={setTablePage}
-            />
-          </>
-        ) : isRankingView ? (
-          <>
-            <RankingBanner
-              rankingType={rankingView}
-              filters={filters}
-              summaryData={summary}
-              onClose={() => setRankingView(null)}
-            />
+              <DataTable
+                data={tableData}
+                filters={effectiveFilters}
+                search={tableSearch}
+                sort={tableSort}
+                page={tablePage}
+                onSearchChange={handleSearchChange}
+                onSortChange={handleSortChange}
+                onPageChange={setTablePage}
+              />
+            </>
+          ) : isRankingView ? (
+            <>
+              <RankingBanner
+                rankingType={rankingView}
+                filters={filters}
+                summaryData={summary}
+                onClose={() => setRankingView(null)}
+              />
 
-            <DataTable
-              data={tableData}
-              filters={filters}
-              search={tableSearch}
-              sort={tableSort}
-              page={tablePage}
-              onSearchChange={handleSearchChange}
-              onSortChange={handleSortChange}
-              onPageChange={setTablePage}
-              showTotals
-            />
-          </>
-        ) : isBucketView ? (
-          <>
-            <BucketBanner
-              bucketType={bucketView}
-              filters={filters}
-              summaryData={summary}
-              onClose={() => setBucketView(null)}
-            />
+              <DataTable
+                data={tableData}
+                filters={filters}
+                search={tableSearch}
+                sort={tableSort}
+                page={tablePage}
+                onSearchChange={handleSearchChange}
+                onSortChange={handleSortChange}
+                onPageChange={setTablePage}
+                showTotals
+                ranking={rankingView}
+              />
+            </>
+          ) : isBucketView ? (
+            <>
+              <BucketBanner
+                bucketType={bucketView}
+                filters={filters}
+                summaryData={summary}
+                onClose={() => setBucketView(null)}
+              />
 
-            <DataTable
-              data={tableData}
-              filters={filters}
-              search={tableSearch}
-              sort={tableSort}
-              page={tablePage}
-              onSearchChange={handleSearchChange}
-              onSortChange={handleSortChange}
-              onPageChange={setTablePage}
-              showTotals
-            />
-          </>
-        ) : (
-          <>
-            <KpiCards data={summary} />
+              <DataTable
+                data={tableData}
+                filters={filters}
+                search={tableSearch}
+                sort={tableSort}
+                page={tablePage}
+                onSearchChange={handleSearchChange}
+                onSortChange={handleSortChange}
+                onPageChange={setTablePage}
+                showTotals
+                bucket={bucketView}
+              />
+            </>
+          ) : (
+            <>
+              <KpiCards data={summary} />
 
-            <Charts data={charts} />
+              <Charts data={charts} />
 
-            {filters.cluster.length === 0 && (
-              <CustomerInsights data={insights} charts={charts} />
-            )}
+              {filters.cluster.length === 0 && (
+                <CustomerInsights data={insights} charts={charts} />
+              )}
 
-            <DataTable
-              data={tableData}
-              filters={filters}
-              search={tableSearch}
-              sort={tableSort}
-              page={tablePage}
-              onSearchChange={handleSearchChange}
-              onSortChange={handleSortChange}
-              onPageChange={setTablePage}
-            />
-          </>
-        )}
+              <DataTable
+                data={tableData}
+                filters={filters}
+                search={tableSearch}
+                sort={tableSort}
+                page={tablePage}
+                onSearchChange={handleSearchChange}
+                onSortChange={handleSortChange}
+                onPageChange={setTablePage}
+              />
+            </>
+          )}
+        </Suspense>
       </main>
     </div>
   );
