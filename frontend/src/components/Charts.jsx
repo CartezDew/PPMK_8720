@@ -11,6 +11,7 @@ import {
   PieChart,
   Pie,
   LabelList,
+  Sector,
 } from "recharts";
 
 const RANKED = [
@@ -386,20 +387,109 @@ function LifestyleBarChart({ data, fills, title, subtitle }) {
 function PieChartCard({ data, fills, title, subtitle }) {
   const maxIdx = findMaxIndex(data, "value");
   const { labelIdx, opacity, onEnter, onLeave, onClick } = useBarFocus(maxIdx);
+  const compact = useNarrow(590);
+  const veryCompact = useNarrow(430);
+
+  const shortName = (name) => {
+    if (!compact) return name;
+    if (name === "Receiver Revenue") return "Receiver";
+    if (name === "DVR Revenue") return "DVR";
+    if (name === "HD Revenue") return "HD";
+    if (name === "PPV Revenue") return "PPV";
+    return name;
+  };
+
+  const explodedShape = useCallback((props) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, fillOpacity } = props;
+    const RADIAN = Math.PI / 180;
+    const offset = 6;
+    const dx = offset * Math.cos(-midAngle * RADIAN);
+    const dy = offset * Math.sin(-midAngle * RADIAN);
+    return (
+      <g>
+        <Sector cx={cx + dx} cy={cy + dy} innerRadius={innerRadius} outerRadius={outerRadius}
+          startAngle={startAngle} endAngle={endAngle}
+          fill={fill} fillOpacity={fillOpacity}
+          stroke="#fff" strokeWidth={2} />
+      </g>
+    );
+  }, []);
 
   return (
     <ChartCard title={title} subtitle={subtitle}>
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={veryCompact ? 340 : 300}>
         <PieChart>
           <Pie
             data={data}
             dataKey="value"
             nameKey="name"
             cx="50%"
-            cy="50%"
-            outerRadius={100}
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-            labelLine={true}
+            cy={veryCompact ? "42%" : "50%"}
+            outerRadius={compact ? 85 : 100}
+            activeIndex={maxIdx}
+            activeShape={explodedShape}
+            label={(props) => {
+              const { name, percent, x, y, cx, cy, outerRadius: or, index } = props;
+              const isMax = index === maxIdx;
+              const pctStr = (percent * 100).toFixed(compact ? 2 : 0) + "%";
+              const color = fills[index];
+              if (isMax) {
+                const textY = cy - or - 20;
+                const arrowStart = textY + 6;
+                const arrowEnd = cy - or - 2;
+                return (
+                  <g>
+                    <circle cx={cx - 68} cy={textY} r={5} fill={color} />
+                    <text x={cx + 5} y={textY} textAnchor="middle" dominantBaseline="central"
+                      fill="#0f172a" fontSize={compact ? 12.5 : 12} fontWeight={800}>
+                      {shortName(name)} {pctStr}
+                    </text>
+                    <line x1={cx} y1={arrowStart} x2={cx} y2={arrowEnd}
+                      stroke="#0f172a" strokeWidth={1.5} />
+                    <polygon
+                      points={`${cx},${arrowEnd + 5} ${cx - 4},${arrowEnd - 1} ${cx + 4},${arrowEnd - 1}`}
+                      fill="#0f172a" />
+                  </g>
+                );
+              }
+              if (veryCompact) {
+                const nonMaxItems = data
+                  .filter((_, i) => i !== maxIdx)
+                  .sort((a, b) => (b.value || 0) - (a.value || 0));
+                const rank = nonMaxItems.findIndex((d) => d.name === name);
+                const baseY = cy + or + 18;
+                const labelY = baseY + rank * 16;
+                return (
+                  <g>
+                    <circle cx={cx - 42} cy={labelY} r={4} fill={color} />
+                    <text x={cx + 5} y={labelY} textAnchor="middle" dominantBaseline="central"
+                      fill="#666" fontSize={11.5} fontWeight={400}>
+                      {shortName(name)} {pctStr}
+                    </text>
+                  </g>
+                );
+              }
+              const anchor = x > cx ? "start" : "end";
+              const dotX = anchor === "start" ? x - 8 : x + 8;
+              return (
+                <g>
+                  <circle cx={dotX} cy={y} r={4} fill={color} />
+                  <text x={x} y={y} textAnchor={anchor} dominantBaseline="central"
+                    fill="#666" fontSize={compact ? 12.5 : 12} fontWeight={400}>
+                    {shortName(name)} {pctStr}
+                  </text>
+                </g>
+              );
+            }}
+            labelLine={({ index, points }) => {
+              if (index === maxIdx) return null;
+              if (veryCompact) return null;
+              if (!points || points.length < 2) return null;
+              return (
+                <path d={`M${points[0].x},${points[0].y}L${points[1].x},${points[1].y}`}
+                  stroke="#999" fill="none" strokeWidth={1} />
+              );
+            }}
             isAnimationActive={true}
             animationBegin={0}
             animationDuration={1000}
@@ -408,8 +498,12 @@ function PieChartCard({ data, fills, title, subtitle }) {
             onMouseLeave={onLeave}
             onClick={onClick}
           >
-            {fills.map((fill, i) => (
-              <Cell key={i} fill={fill} fillOpacity={opacity(i)} />
+            {data.map((entry, i) => (
+              <Cell
+                key={i}
+                fill={fills[i]}
+                fillOpacity={opacity(i)}
+              />
             ))}
           </Pie>
           <Tooltip content={<PieTooltip />} />

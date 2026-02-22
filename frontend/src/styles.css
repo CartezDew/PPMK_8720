@@ -2067,6 +2067,38 @@ body {
   font-style: italic;
 }
 
+.pie-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.pie-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pie-legend-arrow {
+  font-size: 0.7rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pie-legend-name {
+  font-size: 0.75rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.pie-legend-pct {
+  font-size: 0.75rem;
+  color: #0f172a;
+  font-weight: 800;
+}
+
 .chart-tooltip {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
