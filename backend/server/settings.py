@@ -15,6 +15,7 @@ ALLOWED_HOSTS = [
     for h in _raw_hosts.split(",")
     if h.strip()
 ]
+ALLOWED_HOSTS.append(".railway.app")
 
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
