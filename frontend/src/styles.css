@@ -3402,6 +3402,10 @@ body {
   margin: 1.25rem 0 0.5rem;
 }
 
+.sim-presets-btns-row {
+  display: contents;
+}
+
 .sim-presets-label {
   font-size: 0.8rem;
   font-weight: 700;
@@ -3429,9 +3433,19 @@ body {
   background: #f8fafc;
 }
 
-.sim-preset-btn.active {
+.sim-preset-btn.active[data-preset="conservative"] {
+  border-color: #d97706;
+  background: #fffbeb;
+}
+
+.sim-preset-btn.active[data-preset="moderate"] {
   border-color: #0891b2;
   background: #ecfeff;
+}
+
+.sim-preset-btn.active[data-preset="aggressive"] {
+  border-color: #059669;
+  background: #ecfdf5;
 }
 
 .sim-preset-name {
@@ -3440,8 +3454,16 @@ body {
   color: #0f172a;
 }
 
-.sim-preset-btn.active .sim-preset-name {
+.sim-preset-btn.active[data-preset="conservative"] .sim-preset-name {
+  color: #d97706;
+}
+
+.sim-preset-btn.active[data-preset="moderate"] .sim-preset-name {
   color: #0891b2;
+}
+
+.sim-preset-btn.active[data-preset="aggressive"] .sim-preset-name {
+  color: #059669;
 }
 
 .sim-preset-desc {
@@ -4030,6 +4052,129 @@ body {
 .sim-negative {
   color: #dc2626 !important;
   font-weight: 700;
+}
+
+@media (max-width: 975px) {
+  .sim-presets {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .sim-presets-label {
+    margin-right: 0;
+    margin-bottom: 0.15rem;
+  }
+
+  .sim-presets-btns-row {
+    display: flex;
+    gap: 0;
+    position: relative;
+  }
+
+  .sim-preset-btn {
+    flex: 1;
+    align-items: center;
+    text-align: center;
+    padding: 0.5rem 0.4rem;
+    border-radius: 0;
+    border-right-width: 1px;
+    border-left-width: 1px;
+    position: relative;
+  }
+
+  .sim-preset-btn:first-of-type {
+    border-radius: 10px 0 0 10px;
+    border-left-width: 2px;
+  }
+
+  .sim-preset-btn:last-of-type {
+    border-radius: 0 10px 10px 0;
+    border-right-width: 2px;
+  }
+
+  .sim-preset-btn:hover[data-preset="conservative"],
+  .sim-preset-btn:active[data-preset="conservative"] {
+    border-color: #fcd34d;
+    background: #fffdf5;
+  }
+
+  .sim-preset-btn:hover[data-preset="moderate"],
+  .sim-preset-btn:active[data-preset="moderate"] {
+    border-color: #67e8f9;
+    background: #f0fdff;
+  }
+
+  .sim-preset-btn:hover[data-preset="aggressive"],
+  .sim-preset-btn:active[data-preset="aggressive"] {
+    border-color: #6ee7b7;
+    background: #f0fdf8;
+  }
+
+  .sim-preset-desc {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #fff;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+  }
+
+  .sim-preset-btn[data-preset="conservative"] .sim-preset-desc {
+    background: #d97706;
+  }
+
+  .sim-preset-btn[data-preset="moderate"] .sim-preset-desc {
+    background: #0891b2;
+  }
+
+  .sim-preset-btn[data-preset="aggressive"] .sim-preset-desc {
+    background: #059669;
+  }
+
+  .sim-preset-desc::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+  }
+
+  .sim-preset-btn[data-preset="conservative"] .sim-preset-desc::before {
+    border-bottom-color: #d97706;
+  }
+
+  .sim-preset-btn[data-preset="moderate"] .sim-preset-desc::before {
+    border-bottom-color: #0891b2;
+  }
+
+  .sim-preset-btn[data-preset="aggressive"] .sim-preset-desc::before {
+    border-bottom-color: #059669;
+  }
+
+  .sim-preset-btn:hover .sim-preset-desc,
+  .sim-preset-btn:active .sim-preset-desc,
+  .sim-preset-btn.active .sim-preset-desc {
+    opacity: 1;
+  }
+
+  .sim-preset-name {
+    font-size: 0.82rem;
+  }
+
+  .sim-presets + .sim-section {
+    margin-top: 2.75rem;
+  }
 }
 
 /* ── Persona Banner ── */

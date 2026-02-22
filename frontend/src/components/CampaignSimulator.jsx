@@ -653,16 +653,19 @@ export default function CampaignSimulator({ summaryData, onClose }) {
       {/* Scenario Presets */}
       <div className="sim-presets">
         <span className="sim-presets-label">Quick Scenarios:</span>
-        {Object.entries(PRESETS).map(([key, preset]) => (
-          <button
-            key={key}
-            className={`sim-preset-btn ${activePreset === key ? "active" : ""}`}
-            onClick={() => applyPreset(key)}
-          >
-            <span className="sim-preset-name">{preset.label}</span>
-            <span className="sim-preset-desc">{preset.desc}</span>
-          </button>
-        ))}
+        <div className="sim-presets-btns-row">
+          {Object.entries(PRESETS).map(([key, preset]) => (
+            <button
+              key={key}
+              className={`sim-preset-btn ${activePreset === key ? "active" : ""}`}
+              data-preset={key}
+              onClick={() => applyPreset(key)}
+            >
+              <span className="sim-preset-name">{preset.label}</span>
+              <span className="sim-preset-desc">{preset.desc}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Campaign Parameters */}
