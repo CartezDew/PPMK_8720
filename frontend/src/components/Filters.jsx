@@ -74,10 +74,11 @@ function InsightLink({ label, targetId, icon, onClick }) {
   );
 }
 
-function MultiSelect({ label, options, selected, onChange }) {
+function MultiSelect({ label, options, selected, onChange, disabled }) {
   const [open, setOpen] = useState(false);
 
   const toggle = (val) => {
+    if (disabled) return;
     const next = selected.includes(val)
       ? selected.filter((v) => v !== val)
       : [...selected, val];
@@ -85,11 +86,12 @@ function MultiSelect({ label, options, selected, onChange }) {
   };
 
   return (
-    <div className="filter-group">
+    <div className={`filter-group ${disabled ? "filter-group--disabled" : ""}`}>
       <button
         className="filter-toggle"
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => !disabled && setOpen((o) => !o)}
+        disabled={disabled}
       >
         <span className="filter-label">{label}</span>
         <span className="filter-badge">
@@ -98,7 +100,7 @@ function MultiSelect({ label, options, selected, onChange }) {
         <span className={`filter-arrow ${open ? "open" : ""}`}>&#x25BE;</span>
       </button>
 
-      {open && (
+      {open && !disabled && (
         <div className="filter-options">
           {options.map((opt) => (
             <label key={opt} className="filter-option">
@@ -125,13 +127,27 @@ const FILTER_DEFS = [
   { key: "homeowner", label: "Homeownership" },
 ];
 
-export default function Filters({ metadata, filters, onChange, onReset, onSelectCluster, onSelectRanking, onSelectBucket, onLaunchSimulator }) {
+export default function Filters({ metadata, filters, onChange, onReset, onSelectCluster, onSelectRanking, onSelectBucket, onLaunchSimulator, onSelectPersona, filtersDisabled }) {
   const hasActive = Object.values(filters).some((v) => v.length > 0);
 
   return (
     <div className="filters-panel">
       <SidebarSection icon="filters" title="Segment Filters" defaultOpen={true}>
-        {hasActive && (
+        {filtersDisabled && hasActive && (
+          <div className="filter-disabled-notice">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>Clear filters to view this section</span>
+            <button className="filter-disabled-clear" type="button" onClick={onReset}>Clear Filters</button>
+          </div>
+        )}
+        {filtersDisabled && !hasActive && (
+          <p className="filter-disabled-hint">Filters are not applicable to this view.</p>
+        )}
+        {hasActive && !filtersDisabled && (
           <button className="reset-btn" type="button" onClick={onReset}>
             Reset All
           </button>
@@ -143,6 +159,7 @@ export default function Filters({ metadata, filters, onChange, onReset, onSelect
             options={metadata[key] || []}
             selected={filters[key]}
             onChange={(vals) => onChange(key, vals)}
+            disabled={filtersDisabled}
           />
         ))}
       </SidebarSection>
@@ -180,8 +197,20 @@ export default function Filters({ metadata, filters, onChange, onReset, onSelect
         </div>
       </SidebarSection>
 
-      <SidebarSection icon="personas" title="Personas" defaultOpen={false}>
-        <p className="sidebar-placeholder">Persona profiles coming soon...</p>
+      <SidebarSection icon="personas" title="Persona (Cluster 3)" defaultOpen={false}>
+        <div className="insights-nav">
+          <p className="sidebar-sim-desc">View a detailed customer persona built from real Cluster 3 data — the Premium Segment.</p>
+          <button className="sim-launch-btn persona-launch-btn" type="button" onClick={() => onSelectPersona?.()}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7" />
+            </svg>
+            <span>View Cluster 3 Persona</span>
+            <svg className="sim-launch-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+        </div>
       </SidebarSection>
     </div>
   );

@@ -15,6 +15,7 @@ import ClusterBanner from "./components/ClusterBanner.jsx";
 import RankingBanner from "./components/RankingBanner.jsx";
 import BucketBanner from "./components/BucketBanner.jsx";
 import CampaignSimulator from "./components/CampaignSimulator.jsx";
+import PersonaBanner from "./components/PersonaBanner.jsx";
 
 const EMPTY_FILTERS = {
   cluster: [],
@@ -32,6 +33,7 @@ export default function App() {
   const [rankingView, setRankingView] = useState(null);
   const [bucketView, setBucketView] = useState(null);
   const [showSimulator, setShowSimulator] = useState(false);
+  const [showPersona, setShowPersona] = useState(false);
   const [summary, setSummary] = useState(null);
   const [charts, setCharts] = useState(null);
   const [insights, setInsights] = useState(null);
@@ -52,7 +54,7 @@ export default function App() {
   const isClusterView = clusterViewId !== null;
   const isRankingView = rankingView !== null;
   const isBucketView = bucketView !== null;
-  const isDetailView = isClusterView || isRankingView || isBucketView || showSimulator;
+  const isDetailView = isClusterView || isRankingView || isBucketView || showSimulator || showPersona;
 
   const effectiveFilters = useMemo(
     () => isClusterView ? { ...filters, cluster: [clusterViewId] } : filters,
@@ -78,7 +80,7 @@ export default function App() {
       bucket: bucketView || "",
     });
 
-    if (showSimulator) {
+    if (showSimulator || showPersona) {
       fetchSummary(ef)
         .then((s) => { if (!cancelled) { setSummary(s); setCharts(null); setInsights(null); setTableData(null); } })
         .catch((e) => { if (!cancelled) setError(e.message); })
@@ -113,7 +115,7 @@ export default function App() {
     }
 
     return () => { cancelled = true; };
-  }, [filtersKey, clusterViewId, rankingView, bucketView, showSimulator, tablePage, tableSearch, tableSort.by, tableSort.dir]);
+  }, [filtersKey, clusterViewId, rankingView, bucketView, showSimulator, showPersona, tablePage, tableSearch, tableSort.by, tableSort.dir]);
 
   const handleFilterChange = (key, values) => {
     setFilters((prev) => ({ ...prev, [key]: values }));
@@ -126,6 +128,7 @@ export default function App() {
     setRankingView(null);
     setBucketView(null);
     setShowSimulator(false);
+    setShowPersona(false);
     setTablePage(1);
     setTableSearch("");
     setTableSort({ by: "Total Profit", dir: "desc" });
@@ -149,7 +152,9 @@ export default function App() {
       <header className="app-header">
         <div className="header-brand">
           <h1>
-            {showSimulator
+            {showPersona
+              ? "Customer Persona — Cluster 3"
+              : showSimulator
               ? "Campaign Simulator"
               : isClusterView
               ? `Cluster ${clusterViewId} — Customer Insights`
@@ -160,7 +165,9 @@ export default function App() {
               : "Customer Insights Dashboard"}
           </h1>
           <span className="header-subtitle">
-            {showSimulator
+            {showPersona
+              ? "Premium Segment power user profile"
+              : showSimulator
               ? "Model financial outcomes for marketing campaigns"
               : isClusterView
               ? `Viewing Segment ${clusterViewId} customers`
@@ -186,12 +193,14 @@ export default function App() {
           <Filters
             metadata={metadata}
             filters={filters}
+            filtersDisabled={showSimulator || showPersona}
             onChange={handleFilterChange}
             onReset={handleReset}
-            onSelectCluster={(id) => { setRankingView(null); setBucketView(null); setShowSimulator(false); setClusterViewId(id); }}
-            onSelectRanking={(type) => { setClusterViewId(null); setBucketView(null); setShowSimulator(false); setRankingView(type); }}
-            onSelectBucket={(type) => { setClusterViewId(null); setRankingView(null); setShowSimulator(false); setBucketView(type); }}
-            onLaunchSimulator={() => { setClusterViewId(null); setRankingView(null); setBucketView(null); setShowSimulator(true); }}
+            onSelectCluster={(id) => { setRankingView(null); setBucketView(null); setShowSimulator(false); setShowPersona(false); setClusterViewId(id); }}
+            onSelectRanking={(type) => { setClusterViewId(null); setBucketView(null); setShowSimulator(false); setShowPersona(false); setRankingView(type); }}
+            onSelectBucket={(type) => { setClusterViewId(null); setRankingView(null); setShowSimulator(false); setShowPersona(false); setBucketView(type); }}
+            onLaunchSimulator={() => { setClusterViewId(null); setRankingView(null); setBucketView(null); setShowPersona(false); setShowSimulator(true); }}
+            onSelectPersona={() => { setClusterViewId(null); setRankingView(null); setBucketView(null); setShowSimulator(false); setShowPersona(true); }}
           />
         )}
       </aside>
@@ -199,7 +208,12 @@ export default function App() {
       <main className="main-content">
         {error && <div className="error-banner">{error}</div>}
 
-        {showSimulator ? (
+        {showPersona ? (
+          <PersonaBanner
+            filters={filters}
+            onClose={() => setShowPersona(false)}
+          />
+        ) : showSimulator ? (
           <CampaignSimulator
             summaryData={summary}
             onClose={() => setShowSimulator(false)}
