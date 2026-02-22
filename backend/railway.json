@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python manage.py collectstatic --noinput && gunicorn server.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120",
+    "startCommand": "gunicorn server.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120 --preload",
     "healthcheckPath": "/api/health/",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
