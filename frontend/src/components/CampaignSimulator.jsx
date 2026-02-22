@@ -645,8 +645,14 @@ export default function CampaignSimulator({ summaryData, onClose }) {
           <h2 className="cluster-banner-title">Campaign Simulator</h2>
           <p className="cluster-banner-subtitle">Model financial outcomes and forecast marketing campaign ROI</p>
         </div>
-        <button className="cluster-banner-close" onClick={onClose}>
+        <button className="cluster-banner-close sim-back-full" onClick={onClose}>
           ← Back to All Segments
+        </button>
+        <button className="sim-back-icon" onClick={onClose} aria-label="Back to All Segments">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          <span className="sim-back-icon-tooltip">Back to All Segments</span>
         </button>
       </div>
 
@@ -886,6 +892,10 @@ export default function CampaignSimulator({ summaryData, onClose }) {
           ))}
         </div>
       </div>
+
+      <button className="sim-back-bottom" onClick={onClose}>
+        ← Back to All Segments
+      </button>
     </div>
   );
 }

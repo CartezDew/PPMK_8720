@@ -520,6 +520,93 @@ body {
   color: var(--color-text);
 }
 
+.sim-back-icon {
+  display: none;
+}
+
+.sim-back-bottom {
+  display: none;
+}
+
+@media (max-width: 690px) {
+  .sim-back-full {
+    display: none;
+  }
+
+  .sim-back-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .sim-back-icon:hover {
+    background: var(--color-bg);
+    color: var(--color-text);
+    border-color: #94a3b8;
+  }
+
+  .sim-back-icon-tooltip {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    white-space: nowrap;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #fff;
+    background: #334155;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+  }
+
+  .sim-back-icon-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 12px;
+    border: 5px solid transparent;
+    border-bottom-color: #334155;
+  }
+
+  .sim-back-icon:hover .sim-back-icon-tooltip {
+    opacity: 1;
+  }
+
+  .sim-back-bottom {
+    display: block;
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 12px 20px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .sim-back-bottom:hover {
+    background: var(--color-bg);
+    color: var(--color-text);
+    border-color: #94a3b8;
+  }
+}
+
 .cluster-banner-highlights {
   display: flex;
   flex-direction: column;
