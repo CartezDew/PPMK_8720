@@ -138,7 +138,7 @@ export default function PersonaBanner({ filters, onClose }) {
           <h2 className="cluster-banner-title">Customer Persona — Cluster 3</h2>
           <p className="cluster-banner-subtitle">Premium Segment power user profile</p>
         </div>
-        <button className="cluster-banner-close" onClick={onClose}>
+        <button className="cluster-banner-close persona-back-desktop" onClick={onClose}>
           ← Back to All Segments
         </button>
       </div>
@@ -291,6 +291,15 @@ export default function PersonaBanner({ filters, onClose }) {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="persona-back-mobile">
+            <button className="persona-back-btn" onClick={onClose}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back to All Segments
+            </button>
           </div>
         </>
       )}

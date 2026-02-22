@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -219,31 +219,51 @@ function CurrencyTooltip({ active, payload, label, totalCustomers }) {
 function PieTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const d = payload[0];
+  const pct = typeof d.percent === "number" ? (d.percent * 100).toFixed(1) : d.payload?.percent != null ? (d.payload.percent * 100).toFixed(1) : null;
   return (
     <div className="chart-tooltip">
       <p className="chart-tooltip-label">{d.name}</p>
       <p className="chart-tooltip-value">
         ${Number(d.value).toLocaleString("en-US")}
       </p>
-      <p className="chart-tooltip-detail">{(d.percent * 100).toFixed(1)}% of total</p>
+      {pct != null && <p className="chart-tooltip-detail">{pct}% of total</p>}
     </div>
   );
 }
 
 function ChartCard({ title, subtitle, children }) {
+  const cardRef = useRef(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setInView(true); obs.unobserve(el); } },
+      { threshold: 0.15, rootMargin: "0px 0px -20px 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   return (
-    <div className="chart-card">
+    <div className="chart-card" ref={cardRef}>
       <h3 className="chart-title">{title}</h3>
       {subtitle && <p className="chart-subtitle">{subtitle}</p>}
-      {children}
+      {inView ? children : <div style={{ height: 300 }} />}
     </div>
   );
 }
 
-function VerticalBarChart({ data, valueKey, fills, title, subtitle, labelBg }) {
+function VerticalBarChart({ data, valueKey, fills, title, subtitle, labelBg, onBarClick }) {
   const maxIdx = findMaxIndex(data, valueKey);
   const { labelIdx, opacity, onEnter, onLeave, onClick } = useBarFocus(maxIdx);
   const totalCustomers = data.reduce((s, d) => s + (d.count || 0), 0);
+
+  const handleClick = useCallback((entry, idx) => {
+    onClick(entry, idx);
+    if (onBarClick) onBarClick(data[idx], idx);
+  }, [onClick, onBarClick, data]);
 
   return (
     <ChartCard title={title} subtitle={subtitle}>
@@ -256,9 +276,14 @@ function VerticalBarChart({ data, valueKey, fills, title, subtitle, labelBg }) {
           <Bar
             dataKey={valueKey}
             radius={[4, 4, 0, 0]}
+            isAnimationActive={true}
+            animationBegin={0}
+            animationDuration={800}
+            animationEasing="ease-out"
             onMouseEnter={onEnter}
             onMouseLeave={onLeave}
-            onClick={onClick}
+            onClick={handleClick}
+            cursor={onBarClick ? "pointer" : undefined}
           >
             {fills.map((fill, i) => (
               <Cell key={i} fill={fill} fillOpacity={opacity(i)} />
@@ -271,10 +296,15 @@ function VerticalBarChart({ data, valueKey, fills, title, subtitle, labelBg }) {
   );
 }
 
-function HorizontalBarChart({ data, valueKey, fills, title, subtitle }) {
+function HorizontalBarChart({ data, valueKey, fills, title, subtitle, onBarClick }) {
   const maxIdx = findMaxIndex(data, valueKey);
   const { labelIdx, opacity, onEnter, onLeave, onClick } = useBarFocus(maxIdx);
   const totalCustomers = data.reduce((s, d) => s + (d.count || 0), 0);
+
+  const handleClick = useCallback((entry, idx) => {
+    onClick(entry, idx);
+    if (onBarClick) onBarClick(data[idx], idx);
+  }, [onClick, onBarClick, data]);
 
   return (
     <ChartCard title={title} subtitle={subtitle}>
@@ -287,9 +317,14 @@ function HorizontalBarChart({ data, valueKey, fills, title, subtitle }) {
           <Bar
             dataKey={valueKey}
             radius={[0, 4, 4, 0]}
+            isAnimationActive={true}
+            animationBegin={0}
+            animationDuration={800}
+            animationEasing="ease-out"
             onMouseEnter={onEnter}
             onMouseLeave={onLeave}
-            onClick={onClick}
+            onClick={handleClick}
+            cursor={onBarClick ? "pointer" : undefined}
           >
             {fills.map((fill, i) => (
               <Cell key={i} fill={fill} fillOpacity={opacity(i)} />
@@ -317,6 +352,10 @@ function LifestyleBarChart({ data, fills, title, subtitle }) {
           <Bar
             dataKey="pct"
             radius={[0, 4, 4, 0]}
+            isAnimationActive={true}
+            animationBegin={0}
+            animationDuration={800}
+            animationEasing="ease-out"
             onMouseEnter={onEnter}
             onMouseLeave={onLeave}
             onClick={onClick}
@@ -349,6 +388,10 @@ function PieChartCard({ data, fills, title, subtitle }) {
             outerRadius={100}
             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
             labelLine={true}
+            isAnimationActive={true}
+            animationBegin={0}
+            animationDuration={1000}
+            animationEasing="ease-out"
             onMouseEnter={onEnter}
             onMouseLeave={onLeave}
             onClick={onClick}
@@ -364,7 +407,7 @@ function PieChartCard({ data, fills, title, subtitle }) {
   );
 }
 
-export default function Charts({ data }) {
+export default function Charts({ data, onClusterClick, onAgeClick, onGenderClick, onHomeownerClick, onDwellingClick, onEducationClick }) {
   if (!data) return null;
 
   const clusterFills = rankedFills(data.profit_by_cluster, "value");
@@ -404,6 +447,7 @@ export default function Charts({ data }) {
           title="Total Profit by Customer Segment"
           subtitle="Segment profitability for targeting"
           labelBg
+          onBarClick={onClusterClick}
         />
 
         <VerticalBarChart
@@ -413,6 +457,7 @@ export default function Charts({ data }) {
           title="Avg Customer Profit by Age Group"
           subtitle="Which age demographics are most valuable?"
           labelBg
+          onBarClick={onAgeClick}
         />
 
         {data.profit_by_gender?.length > 0 && (
@@ -422,6 +467,7 @@ export default function Charts({ data }) {
             fills={genderFills}
             title="Total Profit by Gender"
             subtitle="Gender-based profitability comparison"
+            onBarClick={onGenderClick}
           />
         )}
 
@@ -432,6 +478,7 @@ export default function Charts({ data }) {
             fills={ownerFills}
             title="Profit: Homeowners vs Renters"
             subtitle="Ownership segment comparison"
+            onBarClick={onHomeownerClick}
           />
         )}
 
@@ -441,6 +488,7 @@ export default function Charts({ data }) {
           fills={dwellingFills}
           title="Profit by Dwelling Type"
           subtitle="Which housing types generate the most revenue?"
+          onBarClick={onDwellingClick}
         />
 
         {data.lifestyle_data?.length > 0 && (
@@ -459,6 +507,7 @@ export default function Charts({ data }) {
             fills={eduFills}
             title="Avg Profit by Education Level"
             subtitle="Does education correlate with customer value?"
+            onBarClick={onEducationClick}
           />
         )}
       </div>

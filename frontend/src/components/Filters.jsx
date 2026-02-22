@@ -30,24 +30,12 @@ function SectionIcon({ type }) {
   return <span className="sidebar-section-icon">{icons[type]}</span>;
 }
 
-function SidebarSection({ icon, title, defaultOpen, children }) {
-  const [open, setOpen] = useState(defaultOpen ?? true);
-
-  return (
-    <div className={`sidebar-section ${open ? "sidebar-section--open" : ""}`}>
-      <button
-        className="sidebar-section-header"
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-      >
-        <SectionIcon type={icon} />
-        <span className="sidebar-section-title">{title}</span>
-        <span className="sidebar-section-toggle">{open ? "−" : "+"}</span>
-      </button>
-      {open && <div className="sidebar-section-body">{children}</div>}
-    </div>
-  );
-}
+const TABS = [
+  { id: "filters", icon: "filters", label: "Filters", shortLabel: "Filters" },
+  { id: "insights", icon: "insights", label: "Key Insights", shortLabel: "Insights" },
+  { id: "campaign", icon: "campaign", label: "Campaign Simulator", shortLabel: "Simulator" },
+  { id: "personas", icon: "personas", label: "Persona (Cluster 3)", shortLabel: "Persona" },
+];
 
 function InsightLink({ label, targetId, icon, onClick }) {
   const iconMap = {
@@ -128,11 +116,15 @@ const FILTER_DEFS = [
 ];
 
 export default function Filters({ metadata, filters, onChange, onReset, onSelectCluster, onSelectRanking, onSelectBucket, onLaunchSimulator, onSelectPersona, filtersDisabled }) {
+  const [activeTab, setActiveTab] = useState("filters");
   const hasActive = Object.values(filters).some((v) => v.length > 0);
 
-  return (
-    <div className="filters-panel">
-      <SidebarSection icon="filters" title="Segment Filters" defaultOpen={true}>
+  const toggleTab = (id) => setActiveTab((prev) => (prev === id ? null : id));
+
+  const sectionContent = {
+    filters: (
+      <>
+        <p className="mobile-panel-title">Segment Filters</p>
         {filtersDisabled && hasActive && (
           <div className="filter-disabled-notice">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -162,56 +154,94 @@ export default function Filters({ metadata, filters, onChange, onReset, onSelect
             disabled={filtersDisabled}
           />
         ))}
-      </SidebarSection>
+      </>
+    ),
+    insights: (
+      <nav className="insights-nav">
+        <p className="mobile-panel-title">Key Insights</p>
+        <p className="insights-nav-group-label">Customer Segments</p>
+        <InsightLink label="Cluster 1" icon="cluster" onClick={() => onSelectCluster?.("1")} />
+        <InsightLink label="Cluster 2" icon="cluster" onClick={() => onSelectCluster?.("2")} />
+        <InsightLink label="Cluster 3" icon="cluster" onClick={() => onSelectCluster?.("3")} />
 
-      <SidebarSection icon="insights" title="Key Insights" defaultOpen={false}>
-        <nav className="insights-nav">
-          <p className="insights-nav-group-label">Customer Segments</p>
-          <InsightLink label="Cluster 1" icon="cluster" onClick={() => onSelectCluster?.("1")} />
-          <InsightLink label="Cluster 2" icon="cluster" onClick={() => onSelectCluster?.("2")} />
-          <InsightLink label="Cluster 3" icon="cluster" onClick={() => onSelectCluster?.("3")} />
+        <p className="insights-nav-group-label">Customer Rankings</p>
+        <InsightLink label="Top 10 Customers" icon="top" onClick={() => onSelectRanking?.("top10")} />
+        <InsightLink label="Bottom 10 Customers" icon="bottom" onClick={() => onSelectRanking?.("bottom10")} />
 
-          <p className="insights-nav-group-label">Customer Rankings</p>
-          <InsightLink label="Top 10 Customers" icon="top" onClick={() => onSelectRanking?.("top10")} />
-          <InsightLink label="Bottom 10 Customers" icon="bottom" onClick={() => onSelectRanking?.("bottom10")} />
+        <p className="insights-nav-group-label">Value Tiers</p>
+        <InsightLink label="Top 10 Highest Value Tiers" icon="top" onClick={() => onSelectBucket?.("top10")} />
+        <InsightLink label="Bottom 10 Lowest Value Tiers" icon="bottom" onClick={() => onSelectBucket?.("bottom10")} />
+      </nav>
+    ),
+    campaign: (
+      <div className="insights-nav mobile-action-panel">
+        <p className="mobile-panel-title">Campaign Simulator</p>
+        <p className="sidebar-sim-desc">Model ROI, NPV, payback period, and breakeven for marketing campaigns.</p>
+        <button className="sim-launch-btn" type="button" onClick={() => onLaunchSimulator?.()}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none" />
+          </svg>
+          <span>Launch Campaign Simulator</span>
+          <svg className="sim-launch-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </button>
+      </div>
+    ),
+    personas: (
+      <div className="insights-nav mobile-action-panel">
+        <p className="mobile-panel-title">Persona — Cluster 3</p>
+        <p className="sidebar-sim-desc">View a detailed customer persona built from real Cluster 3 data — the Premium Segment.</p>
+        <button className="sim-launch-btn persona-launch-btn" type="button" onClick={() => onSelectPersona?.()}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7" />
+          </svg>
+          <span>View Cluster 3 Persona</span>
+          <svg className="sim-launch-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </button>
+      </div>
+    ),
+  };
 
-          <p className="insights-nav-group-label">Value Tiers</p>
-          <InsightLink label="Top 10 Highest Value Tiers" icon="top" onClick={() => onSelectBucket?.("top10")} />
-          <InsightLink label="Bottom 10 Lowest Value Tiers" icon="bottom" onClick={() => onSelectBucket?.("bottom10")} />
-        </nav>
-      </SidebarSection>
-
-      <SidebarSection icon="campaign" title="Campaign Simulator" defaultOpen={false}>
-        <div className="insights-nav">
-          <p className="sidebar-sim-desc">Model ROI, NPV, payback period, and breakeven for marketing campaigns.</p>
-          <button className="sim-launch-btn" type="button" onClick={() => onLaunchSimulator?.()}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none" />
-            </svg>
-            <span>Launch Campaign Simulator</span>
-            <svg className="sim-launch-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
+  return (
+    <div className="filters-panel">
+      <div className="mobile-tab-bar">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            className={`mobile-tab ${activeTab === tab.id ? "mobile-tab--active" : ""}`}
+            type="button"
+            onClick={() => toggleTab(tab.id)}
+          >
+            <SectionIcon type={tab.icon} />
+            <span className="mobile-tab-label">{tab.shortLabel}</span>
           </button>
-        </div>
-      </SidebarSection>
+        ))}
+      </div>
 
-      <SidebarSection icon="personas" title="Persona (Cluster 3)" defaultOpen={false}>
-        <div className="insights-nav">
-          <p className="sidebar-sim-desc">View a detailed customer persona built from real Cluster 3 data — the Premium Segment.</p>
-          <button className="sim-launch-btn persona-launch-btn" type="button" onClick={() => onSelectPersona?.()}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7" />
-            </svg>
-            <span>View Cluster 3 Persona</span>
-            <svg className="sim-launch-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </button>
-        </div>
-      </SidebarSection>
+      {TABS.map((tab) => {
+        const isOpen = activeTab === tab.id;
+        return (
+          <div key={tab.id} className={`sidebar-section ${isOpen ? "sidebar-section--open" : ""}`}>
+            <button
+              className="sidebar-section-header"
+              type="button"
+              onClick={() => toggleTab(tab.id)}
+            >
+              <SectionIcon type={tab.icon} />
+              <span className="sidebar-section-title">{tab.label}</span>
+              <span className="sidebar-section-toggle">{isOpen ? "−" : "+"}</span>
+            </button>
+            {isOpen && (
+              <div className="sidebar-section-body">{sectionContent[tab.id]}</div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

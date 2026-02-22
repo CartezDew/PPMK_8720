@@ -10,6 +10,7 @@ import Filters from "./components/Filters.jsx";
 import KpiCards from "./components/KpiCards.jsx";
 import Charts from "./components/Charts.jsx";
 import DataTable from "./components/DataTable.jsx";
+import ScrollReveal from "./components/ScrollReveal.jsx";
 
 const CustomerInsights = lazy(() => import("./components/CustomerInsights.jsx"));
 const ClusterBanner = lazy(() => import("./components/ClusterBanner.jsx"));
@@ -45,11 +46,18 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     fetchMetadata()
       .then(setMetadata)
       .catch((e) => setError(e.message));
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 300);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const isClusterView = clusterViewId !== null;
@@ -138,6 +146,41 @@ export default function App() {
     setTablePage(1);
   };
 
+  const handleChartFilterToggle = (filterKey, value) => {
+    setFilters((prev) => {
+      const active = prev[filterKey];
+      const next = active.includes(value)
+        ? active.filter((v) => v !== value)
+        : [...active, value];
+      return { ...prev, [filterKey]: next };
+    });
+    setTablePage(1);
+  };
+
+  const handleClusterBarClick = (entry) => {
+    handleChartFilterToggle("cluster", String(entry.name).replace("Cluster ", ""));
+  };
+
+  const handleAgeBarClick = (entry) => {
+    handleChartFilterToggle("age_group", String(entry.name));
+  };
+
+  const handleGenderBarClick = (entry) => {
+    handleChartFilterToggle("gender", String(entry.name));
+  };
+
+  const handleHomeownerBarClick = (entry) => {
+    handleChartFilterToggle("homeowner", String(entry.name));
+  };
+
+  const handleDwellingBarClick = (entry) => {
+    handleChartFilterToggle("dwelling", String(entry.name));
+  };
+
+  const handleEducationBarClick = (entry) => {
+    handleChartFilterToggle("education", String(entry.name));
+  };
+
   const handleReset = () => {
     setFilters(EMPTY_FILTERS);
     setClusterViewId(null);
@@ -205,19 +248,21 @@ export default function App() {
         >
           <span className={`sidebar-toggle-arrow ${sidebarOpen ? "" : "collapsed"}`}>&#x2039;</span>
         </button>
-        {sidebarOpen && metadata && (
-          <Filters
-            metadata={metadata}
-            filters={filters}
-            filtersDisabled={showSimulator || showPersona}
-            onChange={handleFilterChange}
-            onReset={handleReset}
-            onSelectCluster={(id) => { setRankingView(null); setBucketView(null); setShowSimulator(false); setShowPersona(false); setClusterViewId(id); }}
-            onSelectRanking={(type) => { setClusterViewId(null); setBucketView(null); setShowSimulator(false); setShowPersona(false); setRankingView(type); }}
-            onSelectBucket={(type) => { setClusterViewId(null); setRankingView(null); setShowSimulator(false); setShowPersona(false); setBucketView(type); }}
-            onLaunchSimulator={() => { setClusterViewId(null); setRankingView(null); setBucketView(null); setShowPersona(false); setShowSimulator(true); }}
-            onSelectPersona={() => { setClusterViewId(null); setRankingView(null); setBucketView(null); setShowSimulator(false); setShowPersona(true); }}
-          />
+        {metadata && (
+          <div className={`sidebar-content ${sidebarOpen ? "" : "sidebar-content--collapsed"}`}>
+            <Filters
+              metadata={metadata}
+              filters={filters}
+              filtersDisabled={showSimulator || showPersona}
+              onChange={handleFilterChange}
+              onReset={handleReset}
+              onSelectCluster={(id) => { setRankingView(null); setBucketView(null); setShowSimulator(false); setShowPersona(false); setClusterViewId(id); }}
+              onSelectRanking={(type) => { setClusterViewId(null); setBucketView(null); setShowSimulator(false); setShowPersona(false); setRankingView(type); }}
+              onSelectBucket={(type) => { setClusterViewId(null); setRankingView(null); setShowSimulator(false); setShowPersona(false); setBucketView(type); }}
+              onLaunchSimulator={() => { setClusterViewId(null); setRankingView(null); setBucketView(null); setShowPersona(false); setShowSimulator(true); }}
+              onSelectPersona={() => { setClusterViewId(null); setRankingView(null); setBucketView(null); setShowSimulator(false); setShowPersona(true); }}
+            />
+          </div>
         )}
       </aside>
 
@@ -301,28 +346,54 @@ export default function App() {
             </>
           ) : (
             <>
-              <KpiCards data={summary} />
+              <ScrollReveal>
+                <KpiCards data={summary} />
+              </ScrollReveal>
 
-              <Charts data={charts} />
+              <ScrollReveal delay={80}>
+                <Charts
+                  data={charts}
+                  onClusterClick={handleClusterBarClick}
+                  onAgeClick={handleAgeBarClick}
+                  onGenderClick={handleGenderBarClick}
+                  onHomeownerClick={handleHomeownerBarClick}
+                  onDwellingClick={handleDwellingBarClick}
+                  onEducationClick={handleEducationBarClick}
+                />
+              </ScrollReveal>
 
               {filters.cluster.length === 0 && (
-                <CustomerInsights data={insights} charts={charts} />
+                <ScrollReveal delay={160} deferRender>
+                  <CustomerInsights data={insights} charts={charts} />
+                </ScrollReveal>
               )}
 
-              <DataTable
-                data={tableData}
-                filters={filters}
-                search={tableSearch}
-                sort={tableSort}
-                page={tablePage}
-                onSearchChange={handleSearchChange}
-                onSortChange={handleSortChange}
-                onPageChange={setTablePage}
-              />
+              <ScrollReveal delay={200}>
+                <DataTable
+                  data={tableData}
+                  filters={filters}
+                  search={tableSearch}
+                  sort={tableSort}
+                  page={tablePage}
+                  onSearchChange={handleSearchChange}
+                  onSortChange={handleSortChange}
+                  onPageChange={setTablePage}
+                />
+              </ScrollReveal>
             </>
           )}
         </Suspense>
       </main>
+
+      <button
+        className={`scroll-to-top ${showScrollTop ? "scroll-to-top--visible" : ""}`}
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Scroll to top"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 15l-6-6-6 6" />
+        </svg>
+      </button>
     </div>
   );
 }
