@@ -9,17 +9,28 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "insecure-dev-key-change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("true", "1", "yes")
 
+_raw_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 ALLOWED_HOSTS = [
-    h.strip()
-    for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    h.strip().replace("*", "")   # *.example.com → .example.com (Django wildcard syntax)
+    for h in _raw_hosts.split(",")
     if h.strip()
 ]
 
 INSTALLED_APPS = [
+    "django.contrib.contenttypes",
     "corsheaders",
     "rest_framework",
     "dashboard_api",
 ]
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

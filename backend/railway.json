@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "gunicorn server.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120 --preload",
+    "startCommand": "python -c \"import django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','server.settings'); django.setup(); print('Django startup OK')\" && gunicorn server.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --threads 2 --timeout 120 --log-level info --access-logfile - --error-logfile -",
     "healthcheckPath": "/api/health/",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
