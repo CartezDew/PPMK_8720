@@ -4590,6 +4590,16 @@ body {
   }
 }
 
+@media (max-width: 550px) {
+  .chart-card {
+    padding: 18px 16px;
+  }
+
+  .main-content {
+    padding: 12px 14px;
+  }
+}
+
 @media (max-width: 460px) {
   .app-header {
     padding: 0 13px;

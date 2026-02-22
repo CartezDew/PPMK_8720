@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 const PRIMARY_KPIS = [
   { key: "total_customers", label: "Total Customers", format: "number", hero: true },
   { key: "total_profit", label: "Total Profit", format: "currency", hero: true },
@@ -19,10 +21,27 @@ const ADOPTION_KPIS = [
   { key: "hd_adoption", label: "HD Adoption", format: "percent" },
 ];
 
-function fmt(value, format) {
+function useCompact(breakpoint = 540) {
+  const [compact, setCompact] = useState(() => typeof window !== "undefined" && window.innerWidth < breakpoint);
+  useEffect(() => {
+    const check = () => setCompact(window.innerWidth < breakpoint);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [breakpoint]);
+  return compact;
+}
+
+function fmt(value, format, compact = false) {
   if (value == null) return "\u2014";
   if (format === "currency") {
-    return "$" + Number(value).toLocaleString("en-US", {
+    const n = Number(value);
+    if (compact && Math.abs(n) >= 1_000_000) {
+      return "$" + (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+    }
+    if (compact && Math.abs(n) >= 100_000) {
+      return "$" + Math.round(n / 1_000) + "K";
+    }
+    return "$" + n.toLocaleString("en-US", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
@@ -36,11 +55,11 @@ function profitPct(value, total) {
   return ((value / total) * 100).toFixed(2);
 }
 
-function RevenueCard({ label, value, pct, unit }) {
+function RevenueCard({ label, value, pct, unit, compact }) {
   return (
     <div className="kpi-card kpi-card-revenue">
       <span className="kpi-label">{label}</span>
-      <span className="kpi-value">{fmt(value, "currency")}</span>
+      <span className="kpi-value">{fmt(value, "currency", compact)}</span>
       <div className="kpi-profit-share">
         <div className="kpi-share-bar-track">
           <div
@@ -57,6 +76,7 @@ function RevenueCard({ label, value, pct, unit }) {
 
 export default function KpiCards({ data }) {
   const totalProfit = data?.total_profit || 0;
+  const compact = useCompact();
 
   return (
     <section id="section-kpi" className="kpi-container">
@@ -74,7 +94,7 @@ export default function KpiCards({ data }) {
           {PRIMARY_KPIS.map(({ key, label, format, hero }) => (
             <div className={`kpi-card${hero ? " kpi-hero" : ""}`} key={key}>
               <span className="kpi-label">{label}</span>
-              <span className="kpi-value">{data ? fmt(data[key], format) : "\u2014"}</span>
+              <span className="kpi-value">{data ? fmt(data[key], format, compact) : "\u2014"}</span>
             </div>
           ))}
         </div>
@@ -98,6 +118,7 @@ export default function KpiCards({ data }) {
               value={data?.[key]}
               pct={data ? profitPct(data[key], totalProfit) : "0.00"}
               unit={unit}
+              compact={compact}
             />
           ))}
           {ADOPTION_KPIS.map(({ key, label, format }) => (

@@ -296,10 +296,21 @@ function VerticalBarChart({ data, valueKey, fills, title, subtitle, labelBg, onB
   );
 }
 
+function useNarrow(breakpoint = 550) {
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < breakpoint);
+  useEffect(() => {
+    const check = () => setNarrow(window.innerWidth < breakpoint);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [breakpoint]);
+  return narrow;
+}
+
 function HorizontalBarChart({ data, valueKey, fills, title, subtitle, onBarClick }) {
   const maxIdx = findMaxIndex(data, valueKey);
   const { labelIdx, opacity, onEnter, onLeave, onClick } = useBarFocus(maxIdx);
   const totalCustomers = data.reduce((s, d) => s + (d.count || 0), 0);
+  const narrow = useNarrow();
 
   const handleClick = useCallback((entry, idx) => {
     onClick(entry, idx);
@@ -309,10 +320,10 @@ function HorizontalBarChart({ data, valueKey, fills, title, subtitle, onBarClick
   return (
     <ChartCard title={title} subtitle={subtitle}>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 120, bottom: 5, left: 100 }}>
+        <BarChart data={data} layout="vertical" margin={{ top: 5, right: narrow ? 20 : 120, bottom: 5, left: narrow ? 0 : 100 }}>
           <CartesianGrid />
-          <XAxis type="number" tick={<CurrencyTick />} />
-          <YAxis dataKey="name" type="category" width={90} />
+          <XAxis type="number" tick={narrow ? false : <CurrencyTick />} />
+          <YAxis dataKey="name" type="category" width={narrow ? 70 : 90} tick={{ fontSize: narrow ? 10 : 12 }} />
           <Tooltip content={<CurrencyTooltip totalCustomers={totalCustomers} />} />
           <Bar
             dataKey={valueKey}
@@ -340,14 +351,15 @@ function HorizontalBarChart({ data, valueKey, fills, title, subtitle, onBarClick
 function LifestyleBarChart({ data, fills, title, subtitle }) {
   const maxIdx = findMaxIndex(data, "pct");
   const { labelIdx, opacity, onEnter, onLeave, onClick } = useBarFocus(maxIdx);
+  const narrow = useNarrow();
 
   return (
     <ChartCard title={title} subtitle={subtitle}>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 120, bottom: 5, left: 90 }}>
+        <BarChart data={data} layout="vertical" margin={{ top: 5, right: narrow ? 20 : 120, bottom: 5, left: narrow ? 0 : 90 }}>
           <CartesianGrid />
           <XAxis type="number" unit="%" />
-          <YAxis dataKey="name" type="category" width={80} />
+          <YAxis dataKey="name" type="category" width={narrow ? 65 : 80} tick={{ fontSize: narrow ? 10 : 12 }} />
           <Tooltip formatter={(val) => [`${val}%`, "Penetration"]} />
           <Bar
             dataKey="pct"
