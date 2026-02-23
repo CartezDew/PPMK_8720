@@ -470,6 +470,14 @@ export default function ClusterBanner({ clusterId, filters, summaryData, onClose
 
   return (
     <div className="cluster-banner" style={{ "--cluster-color": narrative.color }}>
+      {/* Mobile back arrow */}
+      <button className="cluster-back-icon" onClick={onClose} title="Back to all segments">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 12H5" /><polyline points="12 19 5 12 12 5" />
+        </svg>
+        <span>Back</span>
+      </button>
+
       {/* Header */}
       <div className="cluster-banner-header">
         <div>
@@ -479,7 +487,7 @@ export default function ClusterBanner({ clusterId, filters, summaryData, onClose
           </h2>
           <p className="cluster-banner-subtitle">{narrative.subtitle}</p>
         </div>
-        <button className="cluster-banner-close" onClick={onClose} title="Back to all clusters">
+        <button className="cluster-banner-close cluster-back-full" onClick={onClose} title="Back to all clusters">
           ← Back to All Segments
         </button>
       </div>
@@ -659,6 +667,10 @@ export default function ClusterBanner({ clusterId, filters, summaryData, onClose
           </div>
         </>
       )}
+
+      <button className="cluster-back-bottom" onClick={onClose}>
+        ← Back to All Segments
+      </button>
     </div>
   );
 }

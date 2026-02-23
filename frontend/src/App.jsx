@@ -12,6 +12,7 @@ import Charts from "./components/Charts.jsx";
 import DataTable from "./components/DataTable.jsx";
 import logoImg from "./images/tv-screen-remote-dark-icon200x200-e1496744846203.webp";
 import ScrollReveal from "./components/ScrollReveal.jsx";
+import ClusterOverview from "./components/ClusterOverview.jsx";
 import "./team-dropdown.css";
 
 const CustomerInsights = lazy(() => import("./components/CustomerInsights.jsx"));
@@ -141,26 +142,16 @@ export default function App() {
     const ef = JSON.parse(filtersKey);
     const cv = clusterViewId !== null;
 
-    const tablePromise = fetchTable(ef, {
-      page: tablePage,
-      search: tableSearch,
-      sortBy: tableSort.by,
-      sortDir: tableSort.dir,
-      ranking: rankingView || "",
-      bucket: bucketView || "",
-    });
-
     if (showSimulator || showPersona) {
       fetchSummary(ef)
         .then((s) => { if (!cancelled) { setSummary(s); setCharts(null); setInsights(null); setTableData(null); } })
         .catch((e) => { if (!cancelled) setError(e.message); })
         .finally(() => { if (!cancelled) setLoading(false); });
     } else if (cv || rankingView !== null || bucketView !== null) {
-      Promise.all([fetchSummary(ef), tablePromise])
-        .then(([s, t]) => {
+      fetchSummary(ef)
+        .then((s) => {
           if (cancelled) return;
           setSummary(s);
-          setTableData(t);
           setCharts(null);
           setInsights(null);
         })
@@ -171,21 +162,37 @@ export default function App() {
         fetchSummary(ef),
         fetchCharts(ef),
         fetchInsights(ef),
-        tablePromise,
       ])
-        .then(([s, c, i, t]) => {
+        .then(([s, c, i]) => {
           if (cancelled) return;
           setSummary(s);
           setCharts(c);
           setInsights(i);
-          setTableData(t);
         })
         .catch((e) => { if (!cancelled) setError(e.message); })
         .finally(() => { if (!cancelled) setLoading(false); });
     }
 
     return () => { cancelled = true; };
-  }, [filtersKey, clusterViewId, rankingView, bucketView, showSimulator, showPersona, tablePage, tableSearch, tableSort.by, tableSort.dir]);
+  }, [filtersKey, clusterViewId, rankingView, bucketView, showSimulator, showPersona]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ef = JSON.parse(filtersKey);
+
+    fetchTable(ef, {
+      page: tablePage,
+      search: tableSearch,
+      sortBy: tableSort.by,
+      sortDir: tableSort.dir,
+      ranking: rankingView || "",
+      bucket: bucketView || "",
+    })
+      .then((t) => { if (!cancelled) setTableData(t); })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [filtersKey, tablePage, tableSearch, tableSort.by, tableSort.dir, rankingView, bucketView]);
 
   const handleFilterChange = (key, values) => {
     setFilters((prev) => ({ ...prev, [key]: values }));
@@ -529,8 +536,14 @@ export default function App() {
                 />
               </ScrollReveal>
 
+              {filters.cluster.length === 0 && insights?.cluster_summary?.length > 0 && (
+                <ScrollReveal delay={140}>
+                  <ClusterOverview clusters={insights.cluster_summary} />
+                </ScrollReveal>
+              )}
+
               {filters.cluster.length === 0 && (
-                <ScrollReveal delay={160}>
+                <ScrollReveal delay={180}>
                   <CustomerInsights data={insights} charts={charts} />
                 </ScrollReveal>
               )}
