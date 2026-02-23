@@ -49,7 +49,7 @@ const MARCUS = {
   tagline: "The Premium Power User",
   age: 42,
   gender: "Male",
-  income: 136000,
+  income: 55000,
   mortgage: 220000,
   occupation: "Operations Manager",
   education: "Graduate Degree",

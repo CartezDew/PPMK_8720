@@ -1363,7 +1363,7 @@ body {
 /* Cluster demographic cards grid */
 .cluster-demo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 16px;
 }
 
@@ -1371,6 +1371,8 @@ body {
   background: var(--color-bg);
   border-radius: 8px;
   padding: 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .cluster-demo-title {
@@ -1384,6 +1386,7 @@ body {
 
 .cluster-demo-table {
   width: 100%;
+  min-width: 400px;
   border-collapse: collapse;
   font-size: 0.75rem;
 }
@@ -1500,7 +1503,7 @@ body {
     padding: 12px 10px;
   }
   .cluster-demo-table {
-    min-width: 0;
+    min-width: 380px;
     width: 100%;
     font-size: 0.7rem;
   }
