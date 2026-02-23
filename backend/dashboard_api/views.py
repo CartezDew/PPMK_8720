@@ -57,14 +57,20 @@ def metadata(request):
         "education": "Education Status Details",
         "gender": "Gender",
         "homeowner": "Homeowner",
+        "marital": "Marital Status",
     }
+    counts = {}
     for key, col in filter_columns.items():
         if col in df.columns:
             vals = sorted(df[col].dropna().unique().tolist(), key=str)
             result[key] = vals
+            vc = df[col].value_counts()
+            counts[key] = {str(v): int(vc.get(v, 0)) for v in vals}
         else:
             result[key] = []
+            counts[key] = {}
 
+    result["counts"] = counts
     return Response(result)
 
 
@@ -284,6 +290,65 @@ def charts(request):
             for _, r in grp.iterrows()
         ]
 
+    # --- Profit by Marital Status ---
+    profit_by_marital = []
+    if "Marital Status" in df.columns and "Total Profit" in df.columns:
+        grp = df.groupby("Marital Status").agg(
+            total_profit=("Total Profit", "sum"),
+            avg_profit=("Total Profit", "mean"),
+            count=("Total Profit", "size"),
+        ).reset_index()
+        profit_by_marital = [
+            {
+                "name": str(r["Marital Status"]),
+                "total_profit": _safe_val(r["total_profit"]),
+                "avg_profit": _safe_val(round(r["avg_profit"], 2)),
+                "count": _safe_val(r["count"]),
+            }
+            for _, r in grp.iterrows()
+        ]
+
+    # --- Responder Rating Distribution ---
+    responder_data = []
+    if "Responder Rating" in df.columns and "Total Profit" in df.columns:
+        grp = df.groupby("Responder Rating").agg(
+            avg_profit=("Total Profit", "mean"),
+            count=("Total Profit", "size"),
+        ).reset_index()
+        grp = grp.sort_values("Responder Rating")
+        responder_data = [
+            {
+                "name": f"Rating {int(r['Responder Rating'])}",
+                "avg_profit": _safe_val(round(r["avg_profit"], 2)),
+                "count": _safe_val(r["count"]),
+            }
+            for _, r in grp.iterrows()
+        ]
+
+    # --- Lifestyle Profit Correlation ---
+    lifestyle_profit = []
+    if "Total Profit" in df.columns and len(df) > 0:
+        overall_avg = df["Total Profit"].mean()
+        for col in LIFESTYLE_COLUMNS:
+            if col not in df.columns:
+                continue
+            active = df[df[col] == 1]
+            inactive = df[df[col] != 1]
+            if len(active) == 0:
+                continue
+            avg_yes = active["Total Profit"].mean()
+            avg_no = inactive["Total Profit"].mean() if len(inactive) > 0 else 0
+            diff = avg_yes - avg_no
+            lifestyle_profit.append({
+                "name": col,
+                "avg_profit_yes": _safe_val(round(avg_yes, 2)),
+                "avg_profit_no": _safe_val(round(avg_no, 2)),
+                "diff": _safe_val(round(diff, 2)),
+                "count": len(active),
+                "pct": _safe_val(round(len(active) / len(df) * 100, 1)),
+            })
+        lifestyle_profit.sort(key=lambda x: x["diff"], reverse=True)
+
     return Response({
         "profit_by_cluster": profit_by_cluster,
         "avg_profit_by_age": avg_profit_by_age,
@@ -294,6 +359,9 @@ def charts(request):
         "profit_components": profit_components,
         "lifestyle_data": lifestyle_data,
         "profit_by_education": profit_by_education,
+        "profit_by_marital": profit_by_marital,
+        "responder_data": responder_data,
+        "lifestyle_profit": lifestyle_profit,
     })
 
 
@@ -312,6 +380,8 @@ def insights(request):
         "# of PPV Orders (last 12 Months)", "DVR Service Profit",
         "HD Service Profit", "Age Group", "Gender", "Homeowner",
         "Dwelling Type Details", "Education Status Details", "Cluster",
+        "Household Income", "Number of Total Rooms", "Marital Status",
+        "Est. Mortgage Loan Amount",
     ]
     available = [c for c in detail_cols if c in df.columns]
 
@@ -793,6 +863,10 @@ TABLE_COLUMNS = [
     "Homeowner",
     "Dwelling Type Details",
     "Education Status Details",
+    "Household Income",
+    "Number of Total Rooms",
+    "Marital Status",
+    "Est. Mortgage Loan Amount",
 ]
 
 

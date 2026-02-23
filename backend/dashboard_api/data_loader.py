@@ -64,6 +64,7 @@ FILTER_PARAM_MAP = {
     "education": "Education Status Details",
     "gender": "Gender",
     "homeowner": "Homeowner",
+    "marital": "Marital Status",
 }
 
 
