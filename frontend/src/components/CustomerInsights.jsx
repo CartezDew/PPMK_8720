@@ -336,6 +336,42 @@ function BucketTable({ title, accent, rows, variant, onExportExcel, onExportPdf 
 }
 
 function ClusterTable({ clusters, onExportExcel, onExportPdf }) {
+  const COLS = [
+    { key: "cluster", label: "Segment", type: "text" },
+    { key: "customers", label: "Customers", type: "number" },
+    { key: "total_profit", label: "Total Profit", type: "number" },
+    { key: "avg_profit", label: "Avg Profit", type: "number" },
+    { key: "median_profit", label: "Median Profit", type: "number" },
+    { key: "avg_receivers", label: "Avg Receivers", type: "number" },
+    { key: "avg_ppv", label: "Avg PPV", type: "number" },
+  ];
+
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState("desc");
+
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
+  const sorted = useMemo(() => {
+    if (!clusters?.length) return [];
+    if (!sortKey) return clusters;
+    const col = COLS.find((c) => c.key === sortKey);
+    const isNum = col?.type === "number";
+    return [...clusters].sort((a, b) => {
+      const av = isNum ? Number(a[sortKey] || 0) : String(a[sortKey] ?? "");
+      const bv = isNum ? Number(b[sortKey] || 0) : String(b[sortKey] ?? "");
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [clusters, sortKey, sortDir]);
+
   const totals = useMemo(() => {
     if (!clusters?.length) return { customers: 0, total_profit: 0 };
     return {
@@ -361,17 +397,23 @@ function ClusterTable({ clusters, onExportExcel, onExportPdf }) {
         <table className="data-table insight-table">
           <thead>
             <tr>
-              <th>Segment</th>
-              <th>Customers</th>
-              <th>Total Profit</th>
-              <th>Avg Profit</th>
-              <th>Median Profit</th>
-              <th>Avg Receivers</th>
-              <th>Avg PPV</th>
+              {COLS.map((col) => {
+                const active = sortKey === col.key;
+                return (
+                  <th key={col.key} className="sortable" onClick={() => handleSort(col.key)}>
+                    {col.label}
+                    {active && (
+                      <span className="sort-arrow">
+                        {sortDir === "asc" ? " ↑" : " ↓"}
+                      </span>
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
-            {clusters.map((c) => (
+            {sorted.map((c) => (
               <tr key={c.cluster}>
                 <td>{c.cluster}</td>
                 <td>{c.customers.toLocaleString()}</td>
