@@ -2717,15 +2717,39 @@ body {
   .cluster-overview-card {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
-    padding: 14px 16px;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
   }
   .cluster-overview-card-header {
     min-width: unset;
+    width: 100%;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 0;
+  }
+  .cluster-overview-card:nth-child(1) .cluster-overview-card-header {
+    background: linear-gradient(135deg, #ecfeff 0%, #e0f7fa 100%);
+  }
+  .cluster-overview-card:nth-child(2) .cluster-overview-card-header {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  }
+  .cluster-overview-card:nth-child(3) .cluster-overview-card-header {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  }
+  .cluster-overview-medal {
+    font-size: 1.6rem;
+  }
+  .cluster-overview-card-name {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
   }
   .cluster-overview-stats {
     grid-template-columns: repeat(4, 1fr);
     width: 100%;
+    padding: 14px 16px;
   }
   .cluster-overview-heading {
     font-size: 1.05rem;
