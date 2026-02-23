@@ -31,20 +31,38 @@ function fmt$(v) {
 const PRESETS = {
   conservative: {
     label: "Conservative",
-    desc: "Low-risk, steady returns",
-    budget: 25000, duration: 18, monthlyRevenue: 3000, monthlyCost: 1000, discountRate: 10, estimatedCustomers: 200,
+    desc: "Retention-focused, low churn risk",
+    budget: 40000, duration: 24, monthlyRevenue: 3200, monthlyCost: 1200, discountRate: 12, estimatedCustomers: 350,
   },
   moderate: {
     label: "Moderate",
-    desc: "Balanced risk-reward",
-    budget: 50000, duration: 12, monthlyRevenue: 8000, monthlyCost: 2000, discountRate: 8, estimatedCustomers: 500,
+    desc: "Balanced upsell & bundle strategy",
+    budget: 85000, duration: 18, monthlyRevenue: 8500, monthlyCost: 2800, discountRate: 10, estimatedCustomers: 800,
   },
   aggressive: {
     label: "Aggressive",
-    desc: "High spend, high reward",
-    budget: 100000, duration: 6, monthlyRevenue: 25000, monthlyCost: 5000, discountRate: 5, estimatedCustomers: 1500,
+    desc: "Growth-driven acquisition push",
+    budget: 200000, duration: 12, monthlyRevenue: 28000, monthlyCost: 8500, discountRate: 8, estimatedCustomers: 2000,
   },
 };
+
+const INDUSTRY_BENCHMARKS = {
+  conservative: { irrLow: 8, irrHigh: 20, label: "Pay TV Retention" },
+  moderate:     { irrLow: 15, irrHigh: 35, label: "Pay TV Upsell/Bundle" },
+  aggressive:   { irrLow: 25, irrHigh: 50, label: "Pay TV Acquisition" },
+  general:      { irrLow: 8, irrHigh: 50, label: "Cable & Satellite Industry" },
+};
+
+function getIrrBenchmark(activePreset) {
+  return INDUSTRY_BENCHMARKS[activePreset] || INDUSTRY_BENCHMARKS.general;
+}
+
+function getIrrStatus(irr, benchmark) {
+  if (irr === null) return "neutral";
+  if (irr < benchmark.irrLow) return "below";
+  if (irr > benchmark.irrHigh) return "above";
+  return "within";
+}
 
 function calcScore(npv, paybackMonth, duration, roi, irr, discountRate, costPerCustomer, estimatedCustomers, avgCustomerValue, totalCustomers) {
   let score = 0;
@@ -596,6 +614,7 @@ export default function CampaignSimulator({ summaryData, onClose }) {
       value: results.irr !== null ? `${results.irr.toFixed(1)}%` : "N/A",
       status: results.irr !== null && results.irr > discountRate ? "positive" : results.irr !== null ? "negative" : "neutral",
       hint: results.irr !== null ? (results.irr > discountRate ? `Above ${discountRate}% hurdle` : `Below ${discountRate}% hurdle`) : "Cannot compute",
+      benchmark: true,
     },
     {
       label: "Payback Period",
@@ -808,7 +827,7 @@ export default function CampaignSimulator({ summaryData, onClose }) {
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Download CSV
+              CSV
             </button>
           </div>
         </div>
@@ -826,14 +845,97 @@ export default function CampaignSimulator({ summaryData, onClose }) {
         )}
 
         <div className="sim-results-grid">
-          {resultCards.map((card) => (
-            <div key={card.label} className={`sim-result-card ${card.status}`}>
-              <span className="sim-result-value">{card.value}</span>
-              <span className="sim-result-label">{card.label}</span>
-              <span className={`sim-result-hint ${card.status}`}>{card.hint}</span>
-            </div>
-          ))}
+          {resultCards.map((card) => {
+            const bench = card.benchmark ? getIrrBenchmark(activePreset) : null;
+            const irrStatus = bench ? getIrrStatus(results.irr, bench) : null;
+            return (
+              <div key={card.label} className={`sim-result-card ${card.status}`}>
+                <span className="sim-result-value">{card.value}</span>
+                <span className="sim-result-label">{card.label}</span>
+                <span className={`sim-result-hint ${card.status}`}>{card.hint}</span>
+                {bench && results.irr !== null && (
+                  <span className={`sim-irr-badge sim-irr-${irrStatus}`}>
+                    {irrStatus === "within" && "✓ Within industry range"}
+                    {irrStatus === "below" && "▼ Below industry range"}
+                    {irrStatus === "above" && "▲ Above industry range"}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
+
+        {/* Industry IRR Benchmark */}
+        {(() => {
+          const bench = getIrrBenchmark(activePreset);
+          const irrStatus = getIrrStatus(results.irr, bench);
+          const irrVal = results.irr;
+          return (
+            <div className={`sim-benchmark-panel sim-benchmark-${irrStatus}`}>
+              <div className="sim-benchmark-header">
+                <svg className="sim-benchmark-eq-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <rect className="sim-eq-bar sim-eq-bar-1" x="2"  y="14" width="4" height="6" rx="1" />
+                  <rect className="sim-eq-bar sim-eq-bar-2" x="10" y="10" width="4" height="10" rx="1" />
+                  <rect className="sim-eq-bar sim-eq-bar-3" x="18" y="6"  width="4" height="14" rx="1" />
+                </svg>
+                <span className="sim-benchmark-title">Industry IRR Benchmark</span>
+                <span className="sim-benchmark-source">{bench.label}</span>
+              </div>
+              <div className="sim-benchmark-bar-wrap">
+                <div className="sim-benchmark-bar-track">
+                  <div
+                    className="sim-benchmark-bar-range"
+                    style={{
+                      left: `${(bench.irrLow / 60) * 100}%`,
+                      width: `${((bench.irrHigh - bench.irrLow) / 60) * 100}%`,
+                    }}
+                  />
+                  {irrVal !== null && irrVal >= -10 && (
+                    <div
+                      className={`sim-benchmark-bar-marker sim-irr-${irrStatus}`}
+                      style={{ left: `${Math.max(0, Math.min((irrVal / 60) * 100, 100))}%` }}
+                    >
+                      <span className="sim-benchmark-marker-label">{irrVal.toFixed(1)}%</span>
+                    </div>
+                  )}
+                </div>
+                <div className="sim-benchmark-bar-labels">
+                  <span>0%</span>
+                  <span>{bench.irrLow}%</span>
+                  <span>{bench.irrHigh}%</span>
+                  <span>60%</span>
+                </div>
+              </div>
+              <div className="sim-benchmark-ranges">
+                <div className="sim-benchmark-range-item">
+                  <span className="sim-benchmark-dot" style={{ background: "#d97706" }} />
+                  <span>Conservative: 8–20% IRR</span>
+                </div>
+                <div className="sim-benchmark-range-item">
+                  <span className="sim-benchmark-dot" style={{ background: "#0891b2" }} />
+                  <span>Moderate: 15–35% IRR</span>
+                </div>
+                <div className="sim-benchmark-range-item">
+                  <span className="sim-benchmark-dot" style={{ background: "#059669" }} />
+                  <span>Aggressive: 25–50% IRR</span>
+                </div>
+              </div>
+              {irrStatus !== "within" && irrVal !== null && (
+                <div className={`sim-benchmark-note sim-benchmark-note-${irrStatus}`}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span>
+                    {irrStatus === "below"
+                      ? `Your projected IRR of ${irrVal.toFixed(1)}% is below the typical ${bench.irrLow}–${bench.irrHigh}% range for ${bench.label.toLowerCase()} campaigns. This may indicate insufficient revenue relative to costs, or an overly conservative discount rate. Consider adjusting campaign parameters or targeting higher-value segments.`
+                      : `Your projected IRR of ${irrVal.toFixed(1)}% exceeds the typical ${bench.irrLow}–${bench.irrHigh}% range for ${bench.label.toLowerCase()} campaigns. While ambitious, verify that revenue projections are realistic given the declining pay TV market — overly optimistic assumptions can lead to underperformance.`
+                    }
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Cumulative Cash Flow Chart */}
