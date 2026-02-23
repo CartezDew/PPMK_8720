@@ -173,7 +173,20 @@ export default function Filters({ metadata, filters, onChange, onReset, onSelect
     ),
     insights: (
       <nav className="insights-nav">
-        <p className="mobile-panel-title">Key Insights</p>
+        <div className="insights-title-row">
+          <p className="mobile-panel-title">Key Insights</p>
+          <button
+            className="insights-collapse-btn"
+            type="button"
+            onClick={() => setActiveTab(null)}
+            aria-label="Collapse Key Insights"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 15l-6-6-6 6" />
+            </svg>
+            Close
+          </button>
+        </div>
         <p className="insights-nav-group-label">Customer Segments</p>
         <InsightLink label="Cluster 1" icon="cluster" onClick={() => onSelectCluster?.("1")} badge={{ emoji: "🥈", title: "#2 by Total Profit" }} />
         <InsightLink label="Cluster 2" icon="cluster" onClick={() => onSelectCluster?.("2")} badge={{ emoji: "🥇", title: "#1 Profit Leader" }} />

@@ -3103,6 +3103,14 @@ body {
   display: none;
 }
 
+.insights-title-row {
+  display: none;
+}
+
+.insights-collapse-btn {
+  display: none;
+}
+
 @media (max-width: 730px) {
   .app-layout,
   .app-layout.sidebar-collapsed {
@@ -3348,6 +3356,49 @@ body {
     border-bottom: 2px solid var(--color-border);
   }
 
+  .insights-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .insights-title-row .mobile-panel-title {
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  .insights-collapse-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    animation: insightsClosePulse 2s ease-in-out 0.3s 3;
+  }
+
+  @keyframes insightsClosePulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(8, 145, 178, 0); }
+    50% { transform: scale(1.06); box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.18); }
+  }
+
+  .insights-collapse-btn:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    border-color: #94a3b8;
+  }
+
   /* ---- Mobile: Action panels (simulator/persona) ---- */
   .mobile-action-panel {
     text-align: center;
@@ -3414,6 +3465,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: color 0.15s, background 0.15s, border-color 0.15s;
+    animation: insightsClosePulse 2s ease-in-out 0.3s 3;
   }
 
   .mobile-collapse-btn:hover {
