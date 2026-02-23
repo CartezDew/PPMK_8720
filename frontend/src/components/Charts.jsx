@@ -387,16 +387,18 @@ function LifestyleBarChart({ data, fills, title, subtitle }) {
 function PieChartCard({ data, fills, title, subtitle }) {
   const maxIdx = findMaxIndex(data, "value");
   const { labelIdx, opacity, onEnter, onLeave, onClick } = useBarFocus(maxIdx);
-  const compact = useNarrow(590);
+  const compact = useNarrow(660);
   const veryCompact = useNarrow(430);
 
+  const cleanName = (name) => name.replace(" Revenue", "");
+
   const shortName = (name) => {
-    if (!compact) return name;
+    if (!compact) return cleanName(name);
     if (name === "Receiver Revenue") return "Receiver";
     if (name === "DVR Revenue") return "DVR";
     if (name === "HD Revenue") return "HD";
     if (name === "PPV Revenue") return "PPV";
-    return name;
+    return cleanName(name);
   };
 
   const explodedShape = useCallback((props) => {
@@ -426,13 +428,25 @@ function PieChartCard({ data, fills, title, subtitle }) {
             cx="50%"
             cy={veryCompact ? "42%" : "50%"}
             outerRadius={compact ? 85 : 100}
-            activeIndex={maxIdx}
-            activeShape={explodedShape}
+            activeIndex={compact ? maxIdx : undefined}
+            activeShape={compact ? explodedShape : undefined}
             label={(props) => {
               const { name, percent, x, y, cx, cy, outerRadius: or, index } = props;
+              const pctStr = (percent * 100).toFixed(1) + "%";
               const isMax = index === maxIdx;
-              const pctStr = (percent * 100).toFixed(compact ? 2 : 0) + "%";
+
+              if (!compact) {
+                const nudge = x > cx ? -5 : 5;
+                return (
+                  <text x={x + nudge} y={y} textAnchor={x > cx ? "start" : "end"} dominantBaseline="central"
+                    fill={isMax ? "#0f172a" : "#666"} fontSize={12} fontWeight={isMax ? 800 : 400}>
+                    {cleanName(name)} {pctStr}
+                  </text>
+                );
+              }
+
               const color = fills[index];
+
               if (isMax) {
                 const textY = cy - or - 20;
                 const arrowStart = textY + 6;
@@ -441,7 +455,7 @@ function PieChartCard({ data, fills, title, subtitle }) {
                   <g>
                     <circle cx={cx - 68} cy={textY} r={5} fill={color} />
                     <text x={cx + 5} y={textY} textAnchor="middle" dominantBaseline="central"
-                      fill="#0f172a" fontSize={compact ? 12.5 : 12} fontWeight={800}>
+                      fill="#0f172a" fontSize={12.5} fontWeight={800}>
                       {shortName(name)} {pctStr}
                     </text>
                     <line x1={cx} y1={arrowStart} x2={cx} y2={arrowEnd}
@@ -452,6 +466,7 @@ function PieChartCard({ data, fills, title, subtitle }) {
                   </g>
                 );
               }
+
               if (veryCompact) {
                 const nonMaxItems = data
                   .filter((_, i) => i !== maxIdx)
@@ -469,19 +484,21 @@ function PieChartCard({ data, fills, title, subtitle }) {
                   </g>
                 );
               }
+
               const anchor = x > cx ? "start" : "end";
               const dotX = anchor === "start" ? x - 8 : x + 8;
               return (
                 <g>
                   <circle cx={dotX} cy={y} r={4} fill={color} />
                   <text x={x} y={y} textAnchor={anchor} dominantBaseline="central"
-                    fill="#666" fontSize={compact ? 12.5 : 12} fontWeight={400}>
+                    fill="#666" fontSize={12.5} fontWeight={400}>
                     {shortName(name)} {pctStr}
                   </text>
                 </g>
               );
             }}
             labelLine={({ index, points }) => {
+              if (!compact) return true;
               if (index === maxIdx) return null;
               if (veryCompact) return null;
               if (!points || points.length < 2) return null;
