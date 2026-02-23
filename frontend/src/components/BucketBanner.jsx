@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { fetchBucketProfile } from "../api.js";
 import aiIcon from "../images/ai-icon.webp";
+import ScrollReveal from "./ScrollReveal";
 
 const BUCKET_NARRATIVES = {
   top10: {
@@ -453,10 +454,12 @@ export default function BucketBanner({ bucketType, filters, summaryData, onClose
 
       <div className="cluster-banner-highlights">
         {narrative.highlights.map((h, i) => (
-          <div key={i} className="cluster-highlight">
-            <span className="cluster-highlight-bullet">•</span>
-            <span>{h}</span>
-          </div>
+          <ScrollReveal key={i} delay={i * 120}>
+            <div className="cluster-highlight">
+              <span className="cluster-highlight-bullet">•</span>
+              <span>{h}</span>
+            </div>
+          </ScrollReveal>
         ))}
       </div>
 
@@ -562,10 +565,12 @@ export default function BucketBanner({ bucketType, filters, summaryData, onClose
               </div>
               <div className="cluster-ai-recs">
                 {aiRecs.map((text, i) => (
-                  <div key={i} className="cluster-ai-rec">
-                    <span className="cluster-ai-rec-num">{i + 1}</span>
-                    <span>{text}</span>
-                  </div>
+                  <ScrollReveal key={i} delay={i * 150}>
+                    <div className="cluster-ai-rec">
+                      <span className="cluster-ai-rec-num">{i + 1}</span>
+                      <span>{text}</span>
+                    </div>
+                  </ScrollReveal>
                 ))}
               </div>
             </div>

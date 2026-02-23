@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import aiIcon from "../images/ai-icon.webp";
+import ScrollReveal from "./ScrollReveal";
 
 function calcNPV(monthlyRate, cashFlows) {
   return cashFlows.reduce((sum, cf, t) => sum + cf / Math.pow(1 + monthlyRate, t), 0);
@@ -885,10 +886,12 @@ export default function CampaignSimulator({ summaryData, onClose }) {
         </div>
         <div className="cluster-ai-recs">
           {assessment.map((text, i) => (
-            <div key={i} className="cluster-ai-rec">
-              <span className="cluster-ai-rec-num">{i + 1}</span>
-              <span>{text}</span>
-            </div>
+            <ScrollReveal key={i} delay={i * 150}>
+              <div className="cluster-ai-rec">
+                <span className="cluster-ai-rec-num">{i + 1}</span>
+                <span>{text}</span>
+              </div>
+            </ScrollReveal>
           ))}
         </div>
       </div>

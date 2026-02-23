@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { fetchClusterProfile } from "../api.js";
 import aiIcon from "../images/ai-icon.webp";
+import ScrollReveal from "./ScrollReveal";
 import forrestImg from "../images/forrest-gump-wave.gif";
 
 function fmt$(v) {
@@ -285,10 +286,12 @@ export default function PersonaBanner({ filters, onClose }) {
             </div>
             <div className="cluster-ai-recs">
               {MARCUS.marketingStrategy.map((text, i) => (
-                <div key={i} className="cluster-ai-rec">
-                  <span className="cluster-ai-rec-num">{i + 1}</span>
-                  <span>{text}</span>
-                </div>
+                <ScrollReveal key={i} delay={i * 150}>
+                  <div className="cluster-ai-rec">
+                    <span className="cluster-ai-rec-num">{i + 1}</span>
+                    <span>{text}</span>
+                  </div>
+                </ScrollReveal>
               ))}
             </div>
           </div>

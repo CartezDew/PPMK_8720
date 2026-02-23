@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
+import ScrollReveal from "./ScrollReveal";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -558,10 +559,12 @@ function ProfitabilityInsightsPanel({ data, charts }) {
           </div>
           <div className="profitability-callouts">
             {takeaways.map((text, i) => (
-              <div key={i} className="profitability-callout">
-                <span className="profitability-callout-icon">💡</span>
-                <span>{text}</span>
-              </div>
+              <ScrollReveal key={i} delay={i * 120}>
+                <div className="profitability-callout">
+                  <span className="profitability-callout-icon">💡</span>
+                  <span>{text}</span>
+                </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -576,10 +579,12 @@ function ProfitabilityInsightsPanel({ data, charts }) {
           </div>
           <div className="cluster-ai-recs">
             {aiRecs.map((text, i) => (
-              <div key={i} className="cluster-ai-rec">
-                <span className="cluster-ai-rec-num">{i + 1}</span>
-                <span>{text}</span>
-              </div>
+              <ScrollReveal key={i} delay={i * 150}>
+                <div className="cluster-ai-rec">
+                  <span className="cluster-ai-rec-num">{i + 1}</span>
+                  <span>{text}</span>
+                </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
