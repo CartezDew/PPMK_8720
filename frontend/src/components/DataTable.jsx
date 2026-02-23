@@ -11,6 +11,9 @@ const SORTABLE = [
   "DVR Service Profit",
   "HD Service Profit",
   "Customer Code",
+  "Household Income",
+  "Number of Total Rooms",
+  "Est. Mortgage Loan Amount",
 ];
 
 const COL_LABELS = {
@@ -26,9 +29,13 @@ const COL_LABELS = {
   "Homeowner": "Homeowner",
   "Dwelling Type Details": "Dwelling",
   "Education Status Details": "Education",
+  "Household Income": "HH Income",
+  "Number of Total Rooms": "Rooms",
+  "Marital Status": "Marital Status",
+  "Est. Mortgage Loan Amount": "Est. Mortgage",
 };
 
-const CURRENCY_COLS = new Set(["DVR Service Profit", "HD Service Profit", "Total Profit"]);
+const CURRENCY_COLS = new Set(["DVR Service Profit", "HD Service Profit", "Total Profit", "Household Income", "Est. Mortgage Loan Amount"]);
 const SUMMABLE_COLS = new Set([
   "Total Profit", "# of Receivers", "# of PPV Orders (last 12 Months)",
   "DVR Service Profit", "HD Service Profit",
