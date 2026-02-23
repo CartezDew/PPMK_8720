@@ -318,7 +318,7 @@ export default function App() {
                   <span className="team-toggle-dot" style={{ background: "#4f46e5" }}>LC</span>
                   <span className="team-toggle-dot" style={{ background: "#059669" }}>CD</span>
                 </span>
-                <span>Team 6</span>
+                <span>Team 7</span>
                 <span className={`team-dropdown-arrow ${teamOpen ? "open" : ""}`}>&#x25BE;</span>
               </span>
               <span className={`team-hamburger ${teamOpen ? "open" : ""}`}>
@@ -332,7 +332,7 @@ export default function App() {
                 <div className="team-dropdown-backdrop" onClick={closeTeam} />
                 <div className={`team-dropdown-menu ${teamClosing ? "team-dropdown-menu--closing" : ""}`}>
                   <div className="team-menu-header">
-                    <span className="team-menu-title">Team 6 Members</span>
+                    <span className="team-menu-title">Team 7 Members</span>
                     <span className="team-menu-hint">Select a member to view their section</span>
                   </div>
 
@@ -570,7 +570,7 @@ export default function App() {
           <img src={logoImg} alt="Logo" className="footer-logo" />
           <div className="footer-top-text">
             <span className="footer-brand">Customer Insights Dashboard</span>
-            <span className="footer-team-label">Team 6</span>
+            <span className="footer-team-label">Team 7</span>
           </div>
         </div>
 
@@ -593,7 +593,7 @@ export default function App() {
 
         <div className="footer-rule" />
 
-        <span className="footer-copy">© 2026 Cable & Satellite Customer Insights &middot; Team 6</span>
+        <span className="footer-copy">© 2026 Cable & Satellite Customer Insights &middot; Team 7</span>
       </footer>
 
       <button
